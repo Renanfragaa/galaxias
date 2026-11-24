@@ -1,0 +1,2749 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Galáxia e Universo 3D</title>
+  <style>
+    body {
+      margin: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #03030b;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    canvas {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+
+    #efeitos {
+      z-index: 2;
+    }
+
+    #btn-iniciar {
+      position: relative;
+      z-index: 10;
+      padding: 14px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: #fff3c4;
+      background: rgba(255, 243, 196, 0.08);
+      border: 1px solid rgba(255, 243, 196, 0.45);
+      border-radius: 30px;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 0 20px rgba(255, 200, 100, 0.2);
+      transition: all 0.4s ease;
+    }
+
+    #btn-iniciar:hover {
+      background: rgba(255, 243, 196, 0.2);
+      box-shadow: 0 0 30px rgba(255, 200, 100, 0.45);
+      transform: scale(1.05);
+    }
+
+    #btn-iniciar.oculto {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.9);
+    }
+
+    #dica-universo {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 5;
+      color: rgba(255, 243, 196, 0.8);
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      background: rgba(10, 12, 28, 0.7);
+      border: 1px solid rgba(255, 243, 196, 0.22);
+      padding: 8px 18px;
+      border-radius: 20px;
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      pointer-events: none;
+      text-align: center;
+    }
+
+    #dica-universo.visivel {
+      opacity: 1;
+    }
+
+    #btn-restaurar-universo {
+      position: fixed;
+      top: 20px;
+      right: 24px;
+      z-index: 8;
+      padding: 9px 18px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #ffd6a5;
+      background: rgba(255, 110, 80, 0.14);
+      border: 1px solid rgba(255, 130, 95, 0.45);
+      border-radius: 20px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      display: none;
+      transition: all 0.25s ease;
+    }
+
+    #btn-restaurar-universo:hover {
+      background: rgba(255, 110, 80, 0.3);
+      transform: scale(1.04);
+    }
+
+    /* MODAL DA PROJEÇÃO 3D */
+    #modal-3d {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: radial-gradient(circle at center, rgba(10, 14, 34, 0.94) 0%, rgba(2, 3, 10, 0.98) 100%);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.35s ease, visibility 0.35s ease;
+    }
+
+    #modal-3d.aberto {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    #canvas-3d {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      cursor: grab;
+    }
+
+    #modal-3d.aberto #canvas-3d {
+      pointer-events: auto;
+    }
+
+    #canvas-3d:active {
+      cursor: grabbing;
+    }
+
+    .topo-3d {
+      position: relative;
+      z-index: 35;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 24px 32px;
+      pointer-events: none;
+      gap: 16px;
+    }
+
+    .info-galaxia {
+      pointer-events: auto;
+      background: rgba(12, 16, 38, 0.78);
+      border: 1px solid rgba(130, 200, 255, 0.28);
+      border-left: 3px solid #ffd57e;
+      padding: 16px 22px;
+      border-radius: 12px;
+      max-width: 465px;
+      backdrop-filter: blur(8px);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .info-galaxia.alerta {
+      border-color: rgba(255, 95, 95, 0.65);
+      border-left-color: #ff4d4d;
+      box-shadow: 0 0 25px rgba(255, 70, 70, 0.2);
+    }
+
+    .info-galaxia.estrela-ativa {
+      border-color: rgba(255, 205, 100, 0.65);
+      border-left-color: #ffbe3b;
+      box-shadow: 0 0 25px rgba(255, 185, 65, 0.2);
+    }
+
+    .info-galaxia .tag {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #82c8ff;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .info-galaxia.alerta .tag {
+      color: #ff8585;
+    }
+
+    .info-galaxia.estrela-ativa .tag {
+      color: #ffd57e;
+    }
+
+    .info-galaxia h2 {
+      margin: 0 0 6px 0;
+      font-size: 20px;
+      color: #fff3c4;
+      font-weight: 600;
+    }
+
+    .info-galaxia p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.45;
+      color: #c8d6f0;
+    }
+
+    .telemetria-planeta {
+      display: none;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(130, 200, 255, 0.18);
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      font-size: 11px;
+    }
+
+    .telemetria-planeta.visivel {
+      display: grid;
+    }
+
+    .dado-item span {
+      display: block;
+      color: #82c8ff;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-size: 10px;
+    }
+
+    .info-galaxia.estrela-ativa .dado-item span {
+      color: #ffcf75;
+    }
+
+    .dado-item strong {
+      color: #fff3c4;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    #btn-viajar-corpo {
+      display: none;
+      margin-top: 14px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      color: #061024;
+      background: linear-gradient(135deg, #7ce0ff 0%, #fff3c4 100%);
+      border: none;
+      border-radius: 22px;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(124, 224, 255, 0.45);
+      transition: all 0.25s ease;
+    }
+
+    #btn-viajar-corpo.modo-estrela {
+      background: linear-gradient(135deg, #ffd166 0%, #ff8c42 100%);
+      box-shadow: 0 0 22px rgba(255, 175, 65, 0.55);
+    }
+
+    #btn-viajar-corpo:hover {
+      transform: scale(1.04);
+      box-shadow: 0 0 28px rgba(124, 224, 255, 0.75);
+    }
+
+    #btn-viajar-corpo.modo-estrela:hover {
+      box-shadow: 0 0 30px rgba(255, 185, 75, 0.85);
+    }
+
+    #btn-fechar-3d {
+      pointer-events: auto;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff3c4;
+      background: rgba(255, 243, 196, 0.1);
+      border: 1px solid rgba(255, 243, 196, 0.35);
+      border-radius: 24px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+
+    #btn-fechar-3d:hover {
+      background: rgba(255, 100, 100, 0.25);
+      border-color: rgba(255, 130, 130, 0.7);
+      transform: scale(1.04);
+    }
+
+    .rodape-3d {
+      position: relative;
+      z-index: 35;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 32px;
+      pointer-events: none;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .controles-texto {
+      font-size: 12px;
+      color: rgba(200, 214, 240, 0.8);
+      background: rgba(12, 16, 38, 0.7);
+      padding: 8px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .botoes-3d {
+      pointer-events: auto;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-acao-3d {
+      padding: 8px 14px;
+      font-size: 12px;
+      color: #dbe9ff;
+      background: rgba(20, 28, 60, 0.85);
+      border: 1px solid rgba(130, 200, 255, 0.3);
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-acao-3d:hover {
+      background: rgba(130, 200, 255, 0.22);
+      border-color: #82c8ff;
+    }
+
+    .btn-acao-3d.destaque {
+      border-color: rgba(255, 180, 90, 0.65);
+      color: #ffe3b3;
+      background: rgba(60, 42, 20, 0.85);
+    }
+
+    .btn-acao-3d.voltar-sistema {
+      border-color: rgba(124, 224, 255, 0.65);
+      color: #9be8ff;
+      background: rgba(16, 44, 72, 0.88);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="tela"></canvas>
+  <canvas id="efeitos"></canvas>
+  <button id="btn-iniciar">Criação</button>
+  <button id="btn-restaurar-universo">Restaurar Galáxias Destruídas</button>
+  <div id="dica-universo">Clique em qualquer galáxia para explorar em 3D • Visite estrelas, planetas ou encontre o planeta instável</div>
+
+  <!-- MODAL DE PROJEÇÃO 3D -->
+  <div id="modal-3d">
+    <canvas id="canvas-3d"></canvas>
+
+    <div class="topo-3d">
+      <div class="info-galaxia" id="box-info-3d">
+        <span class="tag" id="tag-3d">Projeção Holográfica 3D</span>
+        <h2 id="titulo-3d">Via Láctea — Sistema Solar</h2>
+        <p id="desc-3d">Sistema planetário orbitando o Sol, incluindo a Terra, Lua, Marte, Júpiter e Saturno.</p>
+
+        <div class="telemetria-planeta" id="telemetria-planeta">
+          <div class="dado-item">
+            <span id="label-dado-1">Temperatura</span>
+            <strong id="dado-1">15 °C</strong>
+          </div>
+          <div class="dado-item">
+            <span id="label-dado-2">Gravidade</span>
+            <strong id="dado-2">9,8 m/s²</strong>
+          </div>
+          <div class="dado-item">
+            <span id="label-dado-3">Atmosfera</span>
+            <strong id="dado-3">N₂ / O₂</strong>
+          </div>
+        </div>
+
+        <button id="btn-viajar-corpo">Viajar a ele</button>
+      </div>
+      <button id="btn-fechar-3d">✕ Voltar ao Universo</button>
+    </div>
+
+    <div class="rodape-3d">
+      <div class="controles-texto" id="texto-controles-3d">
+        Arraste para girar em 3D • Roda do mouse para zoom • Clique em uma estrela ou planeta para viajar até ele
+      </div>
+      <div class="botoes-3d">
+        <button class="btn-acao-3d voltar-sistema" id="btn-voltar-sistema" style="display: none;">← Voltar ao Sistema</button>
+        <button class="btn-acao-3d destaque" id="btn-reconstruir-3d" style="display: none;">Reconstruir Galáxia</button>
+        <button class="btn-acao-3d" id="btn-pausar-3d">Pausar Órbitas</button>
+        <button class="btn-acao-3d" id="btn-nomes-3d">Ocultar Nomes</button>
+        <button class="btn-acao-3d" id="btn-reset-3d">Resetar Câmera</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("tela");
+    const ctx = canvas.getContext("2d");
+    const canvasEfeitos = document.getElementById("efeitos");
+    const ctxEfeitos = canvasEfeitos.getContext("2d");
+    const btnIniciar = document.getElementById("btn-iniciar");
+    const btnRestaurarUniverso = document.getElementById("btn-restaurar-universo");
+    const dicaUniverso = document.getElementById("dica-universo");
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvasEfeitos.width = window.innerWidth;
+    canvasEfeitos.height = window.innerHeight;
+
+    // Gerador aleatório fixo (equivalente ao random.seed(7))
+    let seed = 7;
+    function rand() {
+      seed |= 0;
+      seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+
+    function randint(min, max) {
+      return Math.floor(rand() * (max - min + 1)) + min;
+    }
+
+    function uniform(min, max) {
+      return rand() * (max - min) + min;
+    }
+
+    function gauss(mu, sigma) {
+      let u1 = 0, u2 = 0;
+      while (u1 === 0) u1 = rand();
+      while (u2 === 0) u2 = rand();
+      const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+      return mu + z0 * sigma;
+    }
+
+    function glow(h, v = 1.0, s = 0.7) {
+      h = ((h % 1) + 1) % 1;
+      const i = Math.floor(h * 6);
+      const f = h * 6 - i;
+      const p = v * (1 - s);
+      const q = v * (1 - f * s);
+      const t = v * (1 - (1 - f) * s);
+      let r, g, b;
+
+      switch (i % 6) {
+        case 0: r = v; g = t; b = p; break;
+        case 1: r = q; g = v; b = p; break;
+        case 2: r = p; g = v; b = t; break;
+        case 3: r = p; g = q; b = v; break;
+        case 4: r = t; g = p; b = v; break;
+        case 5: r = v; g = p; b = q; break;
+      }
+      return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+    }
+
+    const TILT = 0.45;
+    const elementos = [];
+    const galaxiasClicaveis = [];
+    const galaxiasExplodidas = new Set();
+    const supernovasUniverso = [];
+
+    function dot(x, y, size, color, galaxiaId = null) {
+      elementos.push({ tipo: "ponto", x, y, size, color, galaxiaId });
+    }
+
+    function placeDot(x, y, size, color, galaxiaId = "via-lactea") {
+      y *= 0.55;
+      const c = Math.cos(TILT);
+      const s = Math.sin(TILT);
+      dot(x * c - y * s, x * s + y * c, size, color, galaxiaId);
+    }
+
+    function placeMini(cx, cy, x, y, tilt, squash, size, color, galaxiaId) {
+      y *= squash;
+      const c = Math.cos(tilt);
+      const s = Math.sin(tilt);
+      dot(cx + (x * c - y * s), cy + (x * s + y * c), size, color, galaxiaId);
+    }
+
+    function stars() {
+      const halfW = Math.floor(canvas.width / 2);
+      const halfH = Math.floor(canvas.height / 2);
+      const coresEstrelas = ["#ffffff", "#ffffff", "#dbe9ff", "#fff4d6", "#b8d4ff"];
+
+      for (let i = 0; i < 650; i++) {
+        const cor = coresEstrelas[randint(0, coresEstrelas.length - 1)];
+        dot(randint(-halfW, halfW), randint(-halfH, halfH), uniform(0.8, 2.8), cor, null);
+      }
+    }
+
+    function dust() {
+      for (let i = 0; i < 700; i++) {
+        const r = gauss(0, 120);
+        const a = uniform(0, 6.283);
+        placeDot(r * Math.cos(a), r * Math.sin(a), randint(2, 4), glow(0.7, 0.3), "via-lactea");
+      }
+    }
+
+    function arms(count) {
+      for (let i = 0; i < count; i++) {
+        for (let k = 0; k < 4; k++) {
+          const d = i / count;
+          const a = (k * Math.PI) / 2 + d * 5.5;
+          const r = 10 + d * 290;
+          const s = 4 + d * 26;
+          const x = r * Math.cos(a) + gauss(0, s);
+          const y = r * Math.sin(a) + gauss(0, s);
+          const hue = 0.13 - d * 0.55;
+          const v = uniform(0.6, 1);
+          const size = randint(2, 4);
+          placeDot(x, y, size, glow(hue, v), "via-lactea");
+        }
+      }
+    }
+
+    function core() {
+      for (let i = 0; i < 260; i++) {
+        const r = gauss(0, 26);
+        const a = uniform(0, 6.283);
+        placeDot(r * Math.cos(a), r * Math.sin(a), randint(2, 5), glow(0.12), "via-lactea");
+      }
+    }
+
+    function sparkle() {
+      for (let i = 0; i < 40; i++) {
+        const r = gauss(0, 150);
+        const a = uniform(0, 6.283);
+        placeDot(r * Math.cos(a), r * Math.sin(a), randint(5, 8), "white", "via-lactea");
+      }
+    }
+
+    function planets() {
+      const listaPlanetas = [
+        { x: -370, y: 150, raio: 15, corClara: "#f7d08a", corEscura: "#3b2313", brilho: "rgba(247, 208, 138, 0.25)", anel: true },
+        { x: 360, y: -155, raio: 13, corClara: "#63c5ff", corEscura: "#0b2447", brilho: "rgba(99, 197, 255, 0.25)", lua: true },
+        { x: -310, y: -185, raio: 9, corClara: "#ff8c69", corEscura: "#3d1109", brilho: "rgba(255, 140, 105, 0.2)" },
+        { x: 380, y: 160, raio: 11, corClara: "#d68fff", corEscura: "#240b3b", brilho: "rgba(214, 143, 255, 0.25)" },
+        { x: -460, y: -20, raio: 7, corClara: "#bdf6ff", corEscura: "#143542", brilho: "rgba(189, 246, 255, 0.2)" }
+      ];
+
+      for (const p of listaPlanetas) {
+        elementos.push({ tipo: "planeta", ...p });
+      }
+    }
+
+    // 1. GALÁXIA ELÍPTICA
+    function galaxiaEliptica(cx, cy) {
+      const tilt = -0.38;
+      const squash = 0.62;
+      for (let i = 0; i < 360; i++) {
+        const r = Math.abs(gauss(0, 28));
+        const a = uniform(0, Math.PI * 2);
+        const brilho = Math.max(0.25, 1 - r / 85);
+        const cor = glow(uniform(0.09, 0.14), brilho, uniform(0.35, 0.65));
+        placeMini(cx, cy, r * Math.cos(a), r * Math.sin(a), tilt, squash, uniform(1.5, 3.2), cor, "eliptica");
+      }
+      dot(cx, cy, 11, "#fff1c1", "eliptica");
+    }
+
+    // 2. GALÁXIA ANELAR
+    function galaxiaAnelar(cx, cy) {
+      const tilt = 0.48;
+      const squash = 0.65;
+      for (let i = 0; i < 95; i++) {
+        const r = gauss(0, 7);
+        const a = uniform(0, Math.PI * 2);
+        placeMini(cx, cy, r * Math.cos(a), r * Math.sin(a), tilt, squash, uniform(1.5, 3), glow(0.11, 0.95, 0.6), "anelar");
+      }
+      dot(cx, cy, 8, "#ffe89e", "anelar");
+
+      for (let i = 0; i < 290; i++) {
+        const r = gauss(48, 4.2);
+        const a = uniform(0, Math.PI * 2);
+        const hue = uniform(0.55, 0.72);
+        placeMini(cx, cy, r * Math.cos(a), r * Math.sin(a), tilt, squash, uniform(1.4, 3), glow(hue, uniform(0.7, 1), 0.75), "anelar");
+      }
+    }
+
+    // 3. GALÁXIA ESPIRAL BARRADA
+    function galaxiaEspiralBarrada(cx, cy) {
+      const tilt = -0.52;
+      const squash = 0.68;
+      for (let i = 0; i < 120; i++) {
+        const x = uniform(-26, 26);
+        const y = gauss(0, 3.8);
+        placeMini(cx, cy, x, y, tilt, squash, uniform(1.5, 2.8), glow(0.12, uniform(0.75, 1), 0.45), "barrada");
+      }
+      for (let i = 0; i < 170; i++) {
+        const d = i / 170;
+        for (let b = 0; b < 2; b++) {
+          const lado = b === 0 ? 1 : -1;
+          const ang = d * 3.4;
+          const r = d * 56;
+          const baseX = lado * 24 + r * Math.cos(ang) * lado;
+          const baseY = r * Math.sin(ang) * lado;
+          const x = baseX + gauss(0, 3 + d * 4);
+          const y = baseY + gauss(0, 3 + d * 4);
+          const hue = 0.46 + d * 0.1;
+          placeMini(cx, cy, x, y, tilt, squash, uniform(1.5, 3), glow(hue, uniform(0.65, 1), 0.75), "barrada");
+        }
+      }
+      dot(cx, cy, 8, "#fff6d6", "barrada");
+    }
+
+    // 4. GALÁXIA IRREGULAR
+    function galaxiaIrregular(cx, cy) {
+      const tilt = 0.3;
+      const bolsoes = [
+        { ox: 0, oy: 0, rad: 24, n: 150, hueMin: 0.56, hueMax: 0.64, sat: 0.35 },
+        { ox: -22, oy: 12, rad: 14, n: 80, hueMin: 0.88, hueMax: 0.96, sat: 0.85 },
+        { ox: 20, oy: -10, rad: 15, n: 85, hueMin: 0.85, hueMax: 0.94, sat: 0.8 },
+        { ox: 8, oy: 18, rad: 12, n: 65, hueMin: 0.52, hueMax: 0.58, sat: 0.75 }
+      ];
+
+      for (const b of bolsoes) {
+        for (let i = 0; i < b.n; i++) {
+          const r = gauss(0, b.rad);
+          const a = uniform(0, Math.PI * 2);
+          const x = b.ox + r * Math.cos(a);
+          const y = b.oy + r * Math.sin(a);
+          const cor = glow(uniform(b.hueMin, b.hueMax), uniform(0.6, 1), b.sat);
+          placeMini(cx, cy, x, y, tilt, 0.75, uniform(1.4, 3.2), cor, "irregular");
+        }
+      }
+    }
+
+    // 5. GALÁXIA SOMBRERO / LENTICULAR
+    function galaxiaSombrero(cx, cy) {
+      const tilt = 0.18;
+      for (let i = 0; i < 180; i++) {
+        const r = Math.abs(gauss(0, 15));
+        const a = uniform(0, Math.PI * 2);
+        placeMini(cx, cy, r * Math.cos(a), r * Math.sin(a), tilt, 0.75, uniform(1.4, 2.8), glow(0.11, uniform(0.5, 0.95), 0.35), "sombrero");
+      }
+      for (let i = 0; i < 220; i++) {
+        const x = gauss(0, 34);
+        const y = gauss(0, 3.2);
+        placeMini(cx, cy, x, y, tilt, 1, uniform(1.4, 2.6), glow(0.14, uniform(0.7, 1), 0.25), "sombrero");
+      }
+      dot(cx, cy, 10, "#fff8e1", "sombrero");
+      for (let i = 0; i < 90; i++) {
+        const x = uniform(-52, 52);
+        const y = gauss(-2.5, 0.8);
+        placeMini(cx, cy, x, y, tilt, 1, uniform(2.5, 3.8), "#03030b", "sombrero");
+      }
+    }
+
+    function outrasGalaxias() {
+      const halfW = Math.max(520, canvas.width / 2);
+      const halfH = Math.max(300, canvas.height / 2);
+
+      const posEliptica = { x: -halfW * 0.74, y: halfH * 0.66 };
+      const posAnelar = { x: halfW * 0.74, y: halfH * 0.65 };
+      const posIrregular = { x: -halfW * 0.73, y: -halfH * 0.65 };
+      const posBarrada = { x: halfW * 0.73, y: -halfH * 0.64 };
+      const posSombrero = { x: -halfW * 0.14, y: halfH * 0.74 };
+
+      galaxiaEliptica(posEliptica.x, posEliptica.y);
+      galaxiaAnelar(posAnelar.x, posAnelar.y);
+      galaxiaIrregular(posIrregular.x, posIrregular.y);
+      galaxiaEspiralBarrada(posBarrada.x, posBarrada.y);
+      galaxiaSombrero(posSombrero.x, posSombrero.y);
+
+      galaxiasClicaveis.push(
+        {
+          id: "via-lactea",
+          nome: "Via Láctea (Sistema Solar)",
+          subtitulo: "Galáxia Espiral • Nosso Sistema Planetário",
+          descricao: "Projeção 3D do nosso Sistema Solar. Clique no Sol ou em qualquer planeta para viajar até ele!",
+          x: 0,
+          y: 0,
+          raioClique: 175
+        },
+        {
+          id: "eliptica",
+          nome: "Galáxia Elíptica (M87)",
+          subtitulo: "Galáxia Elíptica Gigante • Estrelas Antigas",
+          descricao: "Sistema orbitando uma Estrela Supergigante Dourada antiga. Selecione a estrela ou um planeta para viajar.",
+          x: posEliptica.x,
+          y: posEliptica.y,
+          raioClique: 65
+        },
+        {
+          id: "anelar",
+          nome: "Galáxia Anelar (Objeto de Hoag)",
+          subtitulo: "Galáxia de Anel • Sistema Estelar Binário",
+          descricao: "Dois sóis orbitam um ao outro no centro. Clique em qualquer um dos sóis ou exoplanetas para viajar.",
+          x: posAnelar.x,
+          y: posAnelar.y,
+          raioClique: 65
+        },
+        {
+          id: "irregular",
+          nome: "Nuvem de Magalhães",
+          subtitulo: "Galáxia Irregular • Berçário Estelar",
+          descricao: "Uma Estrela Azul Jovem com mundos recém-formados. Selecione a estrela ou um planeta para viajar.",
+          x: posIrregular.x,
+          y: posIrregular.y,
+          raioClique: 65
+        },
+        {
+          id: "barrada",
+          nome: "Galáxia Espiral Barrada (NGC 1300)",
+          subtitulo: "Espiral Barrada • Sistema Kepler",
+          descricao: "Estrela Kepler com uma Super-Terra oceânica na zona habitável. Clique na estrela ou em um planeta.",
+          x: posBarrada.x,
+          y: posBarrada.y,
+          raioClique: 65
+        },
+        {
+          id: "sombrero",
+          nome: "Galáxia do Sombreiro (M104)",
+          subtitulo: "Galáxia Lenticular • Núcleo Denso",
+          descricao: "Estrela branca luminosa rodeada por planetas densos. Selecione a estrela ou um planeta para viajar.",
+          x: posSombrero.x,
+          y: posSombrero.y,
+          raioClique: 65
+        }
+      );
+    }
+
+    function desenharPlaneta(p) {
+      const cx = canvas.width / 2 + p.x;
+      const cy = canvas.height / 2 - p.y;
+
+      ctx.save();
+
+      const halo = ctx.createRadialGradient(cx, cy, p.raio * 0.6, cx, cy, p.raio * 2.1);
+      halo.addColorStop(0, p.brilho);
+      halo.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(cx, cy, p.raio * 2.1, 0, Math.PI * 2);
+      ctx.fill();
+
+      const grad = ctx.createRadialGradient(
+        cx - p.raio * 0.35,
+        cy - p.raio * 0.35,
+        p.raio * 0.15,
+        cx,
+        cy,
+        p.raio
+      );
+      grad.addColorStop(0, p.corClara);
+      grad.addColorStop(1, p.corEscura);
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, p.raio, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      if (p.anel) {
+        ctx.translate(cx, cy);
+        ctx.rotate(-0.4);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.raio * 2.1, p.raio * 0.55, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(247, 215, 160, 0.65)";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+
+      if (p.lua) {
+        ctx.beginPath();
+        ctx.arc(cx + p.raio + 11, cy - 8, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = "#dceeff";
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function redesenharUniversoInstantaneo() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < indice; i++) {
+        const item = elementos[i];
+        if (item.galaxiaId && galaxiasExplodidas.has(item.galaxiaId)) {
+          continue;
+        }
+
+        if (item.tipo === "planeta") {
+          desenharPlaneta(item);
+        } else {
+          ctx.beginPath();
+          ctx.arc(canvas.width / 2 + item.x, canvas.height / 2 - item.y, item.size / 2, 0, Math.PI * 2);
+          ctx.fillStyle = item.color;
+          ctx.fill();
+        }
+      }
+
+      for (const gId of galaxiasExplodidas) {
+        const g = galaxiasClicaveis.find((item) => item.id === gId);
+        if (!g) continue;
+        const sx = canvas.width / 2 + g.x;
+        const sy = canvas.height / 2 - g.y;
+        const raioNebulosa = g.raioClique * 1.15;
+
+        ctx.save();
+        const grad = ctx.createRadialGradient(sx, sy, 2, sx, sy, raioNebulosa);
+        grad.addColorStop(0, "rgba(255, 220, 170, 0.25)");
+        grad.addColorStop(0.4, "rgba(255, 95, 65, 0.14)");
+        grad.addColorStop(0.75, "rgba(110, 160, 255, 0.08)");
+        grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(sx, sy, raioNebulosa, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      btnRestaurarUniverso.style.display = galaxiasExplodidas.size > 0 ? "block" : "none";
+    }
+
+    function criarExplosaoGalaxiaNoUniverso(galaxia) {
+      const sx = canvas.width / 2 + galaxia.x;
+      const sy = canvas.height / 2 - galaxia.y;
+      const qtd = galaxia.id === "via-lactea" ? 260 : 120;
+      const particulas = [];
+
+      for (let i = 0; i < qtd; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const vel = (1.5 + Math.random() * 6.5) * (galaxia.id === "via-lactea" ? 1.5 : 0.9);
+        const cores = ["#ffffff", "#ffe082", "#ff7043", "#ff4081", "#64b5f6"];
+        particulas.push({
+          x: sx + (Math.random() - 0.5) * 20,
+          y: sy + (Math.random() - 0.5) * 20,
+          vx: Math.cos(ang) * vel,
+          vy: Math.sin(ang) * vel,
+          tam: 1.5 + Math.random() * 3,
+          cor: cores[Math.floor(Math.random() * cores.length)]
+        });
+      }
+
+      supernovasUniverso.push({
+        sx,
+        sy,
+        raioOnda: 8,
+        raioMax: galaxia.raioClique * 1.9,
+        vida: 0,
+        vidaMax: 85,
+        particulas
+      });
+    }
+
+    // --- SISTEMA DE ESTRELAS CADENTES E MIRA DE HOVER ---
+    const estrelasCadentes = [];
+    let galaxiaEmFoco = null;
+    let criacaoIniciada = false;
+
+    function criarEstrelaCadente() {
+      const indoParaDireita = Math.random() > 0.35;
+      const anguloBase = (22 + Math.random() * 20) * (Math.PI / 180);
+      const angulo = indoParaDireita ? anguloBase : Math.PI - anguloBase;
+      const velocidade = 13 + Math.random() * 9;
+
+      estrelasCadentes.push({
+        x: indoParaDireita
+          ? Math.random() * canvasEfeitos.width * 0.75
+          : canvasEfeitos.width * (0.25 + Math.random() * 0.75),
+        y: Math.random() * canvasEfeitos.height * 0.45,
+        vx: Math.cos(angulo) * velocidade,
+        vy: Math.sin(angulo) * velocidade,
+        ux: Math.cos(angulo),
+        uy: Math.sin(angulo),
+        cauda: 100 + Math.random() * 90,
+        vida: 0,
+        vidaMax: 45 + Math.floor(Math.random() * 25),
+        cor: Math.random() > 0.3 ? "215, 240, 255" : "255, 243, 196"
+      });
+    }
+
+    function agendarProximaEstrelaCadente() {
+      const atraso = 1600 + Math.random() * 3200;
+      setTimeout(() => {
+        criarEstrelaCadente();
+        agendarProximaEstrelaCadente();
+      }, atraso);
+    }
+
+    function desenharMiraGalaxia(g) {
+      const sx = canvas.width / 2 + g.x;
+      const sy = canvas.height / 2 - g.y;
+      const tempo = performance.now() * 0.002;
+      const foiExplodida = galaxiasExplodidas.has(g.id);
+
+      ctxEfeitos.save();
+      ctxEfeitos.translate(sx, sy);
+
+      ctxEfeitos.save();
+      ctxEfeitos.rotate(tempo);
+      ctxEfeitos.beginPath();
+      ctxEfeitos.arc(0, 0, g.raioClique * 0.78, 0, Math.PI * 2);
+      ctxEfeitos.strokeStyle = foiExplodida ? "rgba(255, 110, 110, 0.55)" : "rgba(255, 243, 196, 0.55)";
+      ctxEfeitos.lineWidth = 1.4;
+      ctxEfeitos.setLineDash([10, 8]);
+      ctxEfeitos.stroke();
+      ctxEfeitos.restore();
+
+      const texto = foiExplodida
+        ? g.nome + " (Supernova) • Ver Remanescente 3D"
+        : g.nome + " • Ver em 3D";
+      ctxEfeitos.font = "600 12px 'Segoe UI', sans-serif";
+      const larguraTexto = ctxEfeitos.measureText(texto).width;
+      const boxY = -g.raioClique * 0.78 - 28;
+      const rx = -larguraTexto / 2 - 12;
+      const ry = boxY - 12;
+      const rw = larguraTexto + 24;
+      const rh = 24;
+
+      ctxEfeitos.fillStyle = "rgba(8, 12, 30, 0.85)";
+      ctxEfeitos.strokeStyle = foiExplodida ? "rgba(255, 110, 110, 0.6)" : "rgba(255, 243, 196, 0.5)";
+      ctxEfeitos.lineWidth = 1;
+      ctxEfeitos.beginPath();
+      if (ctxEfeitos.roundRect) {
+        ctxEfeitos.roundRect(rx, ry, rw, rh, 12);
+      } else {
+        ctxEfeitos.rect(rx, ry, rw, rh);
+      }
+      ctxEfeitos.fill();
+      ctxEfeitos.stroke();
+
+      ctxEfeitos.fillStyle = foiExplodida ? "#ffb3b3" : "#fff3c4";
+      ctxEfeitos.textAlign = "center";
+      ctxEfeitos.textBaseline = "middle";
+      ctxEfeitos.fillText(texto, 0, boxY);
+
+      ctxEfeitos.restore();
+    }
+
+    function animarEfeitos() {
+      ctxEfeitos.clearRect(0, 0, canvasEfeitos.width, canvasEfeitos.height);
+
+      for (let i = supernovasUniverso.length - 1; i >= 0; i--) {
+        const sn = supernovasUniverso[i];
+        sn.vida++;
+        const prog = sn.vida / sn.vidaMax;
+        const alpha = Math.max(0, 1 - prog);
+
+        sn.raioOnda += (sn.raioMax - sn.raioOnda) * 0.08;
+
+        ctxEfeitos.save();
+        ctxEfeitos.beginPath();
+        ctxEfeitos.arc(sn.sx, sn.sy, sn.raioOnda, 0, Math.PI * 2);
+        ctxEfeitos.strokeStyle = `rgba(255, 210, 140, ${alpha * 0.85})`;
+        ctxEfeitos.lineWidth = 3 * alpha;
+        ctxEfeitos.stroke();
+
+        for (const p of sn.particulas) {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vx *= 0.96;
+          p.vy *= 0.96;
+
+          ctxEfeitos.globalAlpha = alpha;
+          ctxEfeitos.fillStyle = p.cor;
+          ctxEfeitos.beginPath();
+          ctxEfeitos.arc(p.x, p.y, p.tam, 0, Math.PI * 2);
+          ctxEfeitos.fill();
+        }
+        ctxEfeitos.restore();
+
+        if (sn.vida >= sn.vidaMax) {
+          supernovasUniverso.splice(i, 1);
+        }
+      }
+
+      for (let i = estrelasCadentes.length - 1; i >= 0; i--) {
+        const e = estrelasCadentes[i];
+        e.x += e.vx;
+        e.y += e.vy;
+        e.vida++;
+
+        const progresso = e.vida / e.vidaMax;
+        const opacidade = progresso < 0.2
+          ? progresso / 0.2
+          : Math.max(0, 1 - (progresso - 0.2) / 0.8);
+
+        const fimX = e.x - e.ux * e.cauda;
+        const fimY = e.y - e.uy * e.cauda;
+
+        const gradiente = ctxEfeitos.createLinearGradient(e.x, e.y, fimX, fimY);
+        gradiente.addColorStop(0, `rgba(255, 255, 255, ${opacidade})`);
+        gradiente.addColorStop(0.25, `rgba(${e.cor}, ${opacidade * 0.55})`);
+        gradiente.addColorStop(1, `rgba(${e.cor}, 0)`);
+
+        ctxEfeitos.save();
+        ctxEfeitos.beginPath();
+        ctxEfeitos.moveTo(e.x, e.y);
+        ctxEfeitos.lineTo(fimX, fimY);
+        ctxEfeitos.strokeStyle = gradiente;
+        ctxEfeitos.lineWidth = 2.2;
+        ctxEfeitos.lineCap = "round";
+        ctxEfeitos.stroke();
+
+        ctxEfeitos.beginPath();
+        ctxEfeitos.arc(e.x, e.y, 2, 0, Math.PI * 2);
+        ctxEfeitos.fillStyle = `rgba(255, 255, 255, ${opacidade})`;
+        ctxEfeitos.shadowColor = `rgba(${e.cor}, ${opacidade})`;
+        ctxEfeitos.shadowBlur = 10;
+        ctxEfeitos.fill();
+        ctxEfeitos.restore();
+
+        if (e.vida >= e.vidaMax) {
+          estrelasCadentes.splice(i, 1);
+        }
+      }
+
+      if (galaxiaEmFoco && !modalAberto) {
+        desenharMiraGalaxia(galaxiaEmFoco);
+      }
+
+      requestAnimationFrame(animarEfeitos);
+    }
+
+    // =========================================================
+    // ENGINE DE PROJEÇÃO 3D INTERATIVA + VIAGEM A PLANETAS E ESTRELAS
+    // =========================================================
+    const modal3D = document.getElementById("modal-3d");
+    const canvas3D = document.getElementById("canvas-3d");
+    const ctx3D = canvas3D.getContext("2d");
+    const boxInfo3D = document.getElementById("box-info-3d");
+    const titulo3D = document.getElementById("titulo-3d");
+    const tag3D = document.getElementById("tag-3d");
+    const desc3D = document.getElementById("desc-3d");
+    const telemetriaPlaneta = document.getElementById("telemetria-planeta");
+    const labelDado1 = document.getElementById("label-dado-1");
+    const labelDado2 = document.getElementById("label-dado-2");
+    const labelDado3 = document.getElementById("label-dado-3");
+    const dado1 = document.getElementById("dado-1");
+    const dado2 = document.getElementById("dado-2");
+    const dado3 = document.getElementById("dado-3");
+    const btnViajarCorpo = document.getElementById("btn-viajar-corpo");
+    const btnVoltarSistema = document.getElementById("btn-voltar-sistema");
+    const btnFechar3D = document.getElementById("btn-fechar-3d");
+    const btnReconstruir3D = document.getElementById("btn-reconstruir-3d");
+    const btnPausar3D = document.getElementById("btn-pausar-3d");
+    const btnNomes3D = document.getElementById("btn-nomes-3d");
+    const btnReset3D = document.getElementById("btn-reset-3d");
+    const textoControles3D = document.getElementById("texto-controles-3d");
+
+    canvas3D.width = window.innerWidth;
+    canvas3D.height = window.innerHeight;
+
+    let modalAberto = false;
+    let pausado3D = false;
+    let mostrarNomes3D = true;
+    let galaxiaAtualObj = null;
+    let sistemaAtual = null;
+    let tempo3D = 0;
+
+    // Modos de visualização: "sistema" | "viagem" | "closeup"
+    let modoVisao3D = "sistema";
+    let corpoSelecionado = null;
+    let corpoDestino = null;
+    let timerViagem = 0;
+    let rotacaoGlobo = 0;
+    let estrelasWarp = [];
+    let manchasGlobo = [];
+    let particulasCoroa = [];
+
+    // Estado da explosão 3D
+    let estadoExplosao = "normal"; // "normal" | "colapso" | "explodida"
+    let planetaGatilho = null;
+    let timerColapso = 0;
+    let flashExplosao = 0;
+    let tremidaCamera = 0;
+    let particulasExplosao3D = [];
+    let ondasChoque3D = [];
+    let corpoEmHover3D = null;
+
+    let rotY = 0.4;
+    let rotX = 0.58;
+    let zoom3D = 1.0;
+    let arrastando = false;
+    let mouseDownX = 0;
+    let mouseDownY = 0;
+    let ultimoMouseX = 0;
+    let ultimoMouseY = 0;
+
+    const estrelasFundo3D = Array.from({ length: 180 }, () => ({
+      x: (Math.random() - 0.5) * 1800,
+      y: (Math.random() - 0.5) * 1200,
+      z: (Math.random() - 0.5) * 1800,
+      tam: 0.8 + Math.random() * 1.8
+    }));
+
+    const sistemas3D = {
+      "via-lactea": {
+        estrelas: [
+          {
+            nome: "Sol", ehEstrela: true, raio: 32, dist: 0, vel: 0, ang: 0,
+            cor1: "#fffbe0", cor2: "#ff9900", brilho: "rgba(255, 195, 60, 0.55)",
+            temp: "5.500 °C", classe: "Anã Amarela (G2V)", comp: "73% H, 25% He",
+            info: "A estrela no centro do nosso Sistema Solar, uma esfera de plasma incandescente que ilumina e aquece todos os planetas ao seu redor."
+          }
+        ],
+        planetas: [
+          {
+            nome: "Mercúrio", raio: 4.5, dist: 62, vel: 1.9, ang: 0.4, cor1: "#c9c2b8", cor2: "#5e5852",
+            temp: "167 °C", grav: "3,7 m/s²", atm: "Quase nula",
+            info: "O menor e mais interno planeta do Sistema Solar, coberto por crateras de impacto."
+          },
+          {
+            nome: "Vênus", raio: 7.2, dist: 92, vel: 1.4, ang: 2.1, cor1: "#f5d489", cor2: "#8f6324",
+            temp: "464 °C", grav: "8,9 m/s²", atm: "CO₂ Denso",
+            info: "Envolto em nuvens espessas de ácido sulfúrico com intenso efeito estufa."
+          },
+          {
+            nome: "Terra", raio: 8.2, dist: 132, vel: 1.05, ang: 3.7, cor1: "#58b4ff", cor2: "#0d3b7a",
+            terra: true, temp: "15 °C", grav: "9,8 m/s²", atm: "78% N₂, 21% O₂",
+            info: "Nosso mundo natal, único planeta conhecido com oceanos líquidos na superfície e vida abundante.",
+            luas: [{ nome: "Lua", raio: 2.3, dist: 16, vel: 4.2, ang: 0.5, cor1: "#f0f4f8", cor2: "#7d8590" }]
+          },
+          {
+            nome: "Marte", raio: 6.0, dist: 172, vel: 0.85, ang: 5.0, cor1: "#ff7a52", cor2: "#691c0b",
+            temp: "-65 °C", grav: "3,7 m/s²", atm: "CO₂ Rarefeito",
+            info: "O Planeta Vermelho, lar do Monte Olimpo e de antigos vales fluviais congelados."
+          },
+          {
+            nome: "Júpiter", raio: 16.5, dist: 235, vel: 0.52, ang: 1.1, cor1: "#f2cfa5", cor2: "#7d4e2d",
+            gasoso: true, temp: "-110 °C", grav: "24,8 m/s²", atm: "H₂ / He",
+            info: "O gigante gasoso supremo do Sistema Solar, famoso por suas faixas de nuvens e a Grande Mancha Vermelha.",
+            luas: [{ nome: "Europa", raio: 2.2, dist: 23, vel: 3.4, ang: 1.8, cor1: "#e8f4ff", cor2: "#7a95b0" }]
+          },
+          {
+            nome: "Saturno", raio: 14.0, dist: 305, vel: 0.38, ang: 4.3, cor1: "#fae1a5", cor2: "#8a6d36",
+            gasoso: true, temp: "-140 °C", grav: "10,4 m/s²", atm: "H₂ / He",
+            info: "Adornado pelo mais espetacular sistema de anéis de gelo e poeira do Sistema Solar.",
+            anel: { interno: 18, externo: 30, cor: "rgba(245, 218, 160, 0.65)" }
+          },
+          {
+            nome: "Urano", raio: 10.0, dist: 365, vel: 0.27, ang: 2.7, cor1: "#9ef0ff", cor2: "#246b7d",
+            gasoso: true, temp: "-195 °C", grav: "8,7 m/s²", atm: "H₂ / Metano",
+            info: "Gigante de gelo azul-esverdeado que gira praticamente deitado em sua órbita."
+          },
+          {
+            nome: "Netuno", raio: 9.8, dist: 418, vel: 0.21, ang: 0.8, cor1: "#5c8dff", cor2: "#16296b",
+            gasoso: true, temp: "-200 °C", grav: "11,2 m/s²", atm: "H₂ / Metano",
+            info: "O mundo mais distante do Sol, varrido pelos ventos supersônicos mais rápidos do sistema."
+          }
+        ]
+      },
+      "eliptica": {
+        estrelas: [
+          {
+            nome: "Supergigante Dourada", ehEstrela: true, raio: 40, dist: 0, vel: 0, ang: 0,
+            cor1: "#fff2cc", cor2: "#e67300", brilho: "rgba(255, 160, 50, 0.55)",
+            temp: "4.100 °C", classe: "Supergigante (K0)", comp: "Hélio / Carbono",
+            info: "Uma colossal estrela antiga em estágio avançado de evolução, centenas de vezes maior que o Sol."
+          }
+        ],
+        planetas: [
+          {
+            nome: "Vulcano-I", raio: 6.5, dist: 85, vel: 1.6, ang: 0.7, cor1: "#ff944d", cor2: "#4d1a00",
+            temp: "620 °C", grav: "11,1 m/s²", atm: "Vapor de Enxofre",
+            info: "Mundo vulcânico próximo demais da Supergigante Dourada, com oceanos de magma."
+          },
+          {
+            nome: "Aurelia", raio: 10.5, dist: 145, vel: 1.0, ang: 2.5, cor1: "#ffd480", cor2: "#664400",
+            terra: true, temp: "24 °C", grav: "10,2 m/s²", atm: "N₂ / O₂ / Ar",
+            info: "Super-Terra dourada na zona habitável com continentes banhados por luz âmbar eterna."
+          },
+          {
+            nome: "Colosso", raio: 18.0, dist: 225, vel: 0.6, ang: 4.2, cor1: "#d9b38c", cor2: "#4d3319",
+            gasoso: true, temp: "-95 °C", grav: "29,4 m/s²", atm: "H₂ / He",
+            info: "Super-Júpiter massivo rodeado por anéis densos de silicatos dourados.",
+            anel: { interno: 23, externo: 36, cor: "rgba(255, 210, 150, 0.55)" }
+          },
+          {
+            nome: "Chronos", raio: 11.5, dist: 310, vel: 0.35, ang: 1.3, cor1: "#b3c6ff", cor2: "#1f2e5c",
+            temp: "-180 °C", grav: "12,0 m/s²", atm: "Nitrogênio",
+            info: "Planeta gelado antigo nos confins da galáxia elíptica M87."
+          }
+        ]
+      },
+      "anelar": {
+        estrelas: [
+          {
+            nome: "Sol Alfa", ehEstrela: true, raio: 24, dist: 26, vel: 1.4, ang: 0,
+            cor1: "#fffbe6", cor2: "#ffaa00", brilho: "rgba(255, 200, 80, 0.5)",
+            temp: "5.800 °C", classe: "Estrela Solar (G0)", comp: "Hidrogênio / Hélio",
+            info: "A estrela primária dourada deste sistema binário, dançando em órbita mútua com sua companheira azul."
+          },
+          {
+            nome: "Sol Beta", ehEstrela: true, raio: 19, dist: 26, vel: 1.4, ang: Math.PI,
+            cor1: "#e6f7ff", cor2: "#3399ff", brilho: "rgba(90, 180, 255, 0.5)",
+            temp: "11.500 °C", classe: "Estrela Azul (B8)", comp: "H / He Ionizado",
+            info: "A estrela companheira mais quente e azulada do par binário central do Objeto de Hoag."
+          }
+        ],
+        planetas: [
+          {
+            nome: "Hoag-b", raio: 8.5, dist: 120, vel: 1.1, ang: 1.0, cor1: "#80d4ff", cor2: "#003366",
+            terra: true, temp: "19 °C", grav: "9,5 m/s²", atm: "O₂ / N₂",
+            info: "Planeta circumbinário iluminado por dois sóis — um dourado e um azul — no céu."
+          },
+          {
+            nome: "Anelídea", raio: 14.5, dist: 195, vel: 0.7, ang: 3.4, cor1: "#b399ff", cor2: "#291466",
+            gasoso: true, temp: "-125 °C", grav: "18,3 m/s²", atm: "H₂ / Vapor",
+            info: "Gigante violeta com anéis luminosos que refletem a luz dupla das estrelas centrais.",
+            anel: { interno: 19, externo: 32, cor: "rgba(150, 180, 255, 0.65)" }
+          },
+          {
+            nome: "Crius", raio: 10.0, dist: 275, vel: 0.42, ang: 5.1, cor1: "#99ffeb", cor2: "#0d4d40",
+            temp: "-170 °C", grav: "8,4 m/s²", atm: "Metano",
+            info: "Mundo cristalino coberto por geleiras de nitrogênio sólido."
+          }
+        ]
+      },
+      "irregular": {
+        estrelas: [
+          {
+            nome: "Estrela Azul Jovem", ehEstrela: true, raio: 30, dist: 0, vel: 0, ang: 0,
+            cor1: "#ffffff", cor2: "#4da6ff", brilho: "rgba(100, 190, 255, 0.6)",
+            temp: "22.000 °C", classe: "Gigante Azul (O9V)", comp: "Plasma H / He",
+            info: "Uma estrela recém-nascida extremamente quente e luminosa, emitindo intensos ventos estelares na nebulosa."
+          }
+        ],
+        planetas: [
+          {
+            nome: "Proto-Terra", raio: 8.0, dist: 105, vel: 1.3, ang: 0.9, cor1: "#ff85c2", cor2: "#590d33",
+            terra: true, temp: "32 °C", grav: "9,1 m/s²", atm: "Vapor / O₂",
+            info: "Planeta jovem em formação, banhado pela radiação azul-violeta do berçário estelar."
+          },
+          {
+            nome: "Nebulosa-II", raio: 13.5, dist: 175, vel: 0.85, ang: 2.8, cor1: "#80e5ff", cor2: "#144d66",
+            gasoso: true, temp: "-90 °C", grav: "16,7 m/s²", atm: "H₂ / Neon",
+            info: "Gigante gasoso rodeado por um disco de poeira estelar rosa e ciano.",
+            anel: { interno: 18, externo: 29, cor: "rgba(255, 130, 210, 0.55)" }
+          },
+          {
+            nome: "Magalhães-c", raio: 9.0, dist: 245, vel: 0.5, ang: 4.9, cor1: "#d1b3ff", cor2: "#331a66",
+            temp: "-145 °C", grav: "7,9 m/s²", atm: "Hélio",
+            info: "Planeta rochoso distante com auroras constantes causadas pelos ventos da estrela azul."
+          }
+        ]
+      },
+      "barrada": {
+        estrelas: [
+          {
+            nome: "Estrela Kepler", ehEstrela: true, raio: 29, dist: 0, vel: 0, ang: 0,
+            cor1: "#fff0d6", cor2: "#ff6600", brilho: "rgba(255, 140, 50, 0.55)",
+            temp: "4.900 °C", classe: "Anã Laranja (K2V)", comp: "H / He / Metais",
+            info: "Estrela estável e longeva que aquece a Super-Terra oceânica Kepler-22b com uma luz âmbar suave."
+          }
+        ],
+        planetas: [
+          {
+            nome: "Kepler-22b", raio: 9.5, dist: 115, vel: 1.2, ang: 1.5, cor1: "#4dffdb", cor2: "#004d40",
+            terra: true, temp: "22 °C", grav: "13,5 m/s²", atm: "N₂ / O₂ / H₂O",
+            info: "Super-Terra oceânica coberta por um mar global profundo e arquipélagos tropicais.",
+            luas: [{ nome: "Triton-K", raio: 2.4, dist: 17, vel: 3.8, ang: 0, cor1: "#ffffff", cor2: "#668080" }]
+          },
+          {
+            nome: "Boreas", raio: 15.0, dist: 195, vel: 0.72, ang: 3.8, cor1: "#70dbdb", cor2: "#143d3d",
+            gasoso: true, temp: "-115 °C", grav: "21,0 m/s²", atm: "H₂ / He",
+            info: "Gigante turquesa com anéis translúcidos de cristal de água.",
+            anel: { interno: 19, externo: 31, cor: "rgba(112, 219, 219, 0.6)" }
+          },
+          {
+            nome: "Nyx", raio: 8.5, dist: 270, vel: 0.44, ang: 5.6, cor1: "#99b3ff", cor2: "#1a264d",
+            temp: "-190 °C", grav: "6,8 m/s²", atm: "Nitrogênio",
+            info: "Mundo sombrio na borda externa do sistema Kepler."
+          }
+        ]
+      },
+      "sombrero": {
+        estrelas: [
+          {
+            nome: "Núcleo M104", ehEstrela: true, raio: 34, dist: 0, vel: 0, ang: 0,
+            cor1: "#ffffff", cor2: "#ffd24d", brilho: "rgba(255, 235, 160, 0.6)",
+            temp: "9.200 °C", classe: "Estrela Branca (A0V)", comp: "Hidrogênio Puro",
+            info: "Estrela branca de brilho intenso localizada próxima ao denso bojo central da Galáxia do Sombreiro."
+          }
+        ],
+        planetas: [
+          {
+            nome: "Sombra-I", raio: 6.5, dist: 88, vel: 1.5, ang: 0.3, cor1: "#e6ccb3", cor2: "#4d3926",
+            temp: "310 °C", grav: "8,2 m/s²", atm: "Silicatos",
+            info: "Planeta rochoso denso orbitando bem próximo ao núcleo brilhante de M104."
+          },
+          {
+            nome: "Terra-M104", raio: 8.8, dist: 140, vel: 1.0, ang: 2.2, cor1: "#66b3ff", cor2: "#0d3366",
+            terra: true, temp: "17 °C", grav: "10,1 m/s²", atm: "N₂ / O₂",
+            info: "Mundo azul temperado com vista privilegiada para o disco de poeira da Galáxia do Sombreiro."
+          },
+          {
+            nome: "Cinturão Real", raio: 16.0, dist: 215, vel: 0.6, ang: 4.5, cor1: "#ffe699", cor2: "#665214",
+            gasoso: true, temp: "-130 °C", grav: "22,5 m/s²", atm: "H₂ / He",
+            info: "Gigante dourado cercado por anéis largos semelhantes ao disco da própria galáxia.",
+            anel: { interno: 21, externo: 38, cor: "rgba(255, 230, 150, 0.65)" }
+          }
+        ]
+      }
+    };
+
+    function sortearEasterEggs() {
+      for (const chave of Object.keys(sistemas3D)) {
+        const lista = sistemas3D[chave].planetas;
+        lista.forEach((p) => { p.isEasterEgg = false; });
+        const sorteado = lista[Math.floor(Math.random() * lista.length)];
+        sorteado.isEasterEgg = true;
+      }
+    }
+    sortearEasterEggs();
+
+    // =========================================================
+    // FUNÇÕES DE SELEÇÃO E VIAGEM PARA PLANETAS E ESTRELAS
+    // =========================================================
+    function preencherTelemetriaCorpo(corpo) {
+      if (corpo.ehEstrela) {
+        labelDado1.textContent = "Temperatura";
+        labelDado2.textContent = "Classificação";
+        labelDado3.textContent = "Composição";
+        dado1.textContent = corpo.temp;
+        dado2.textContent = corpo.classe;
+        dado3.textContent = corpo.comp;
+      } else {
+        labelDado1.textContent = "Temperatura";
+        labelDado2.textContent = "Gravidade";
+        labelDado3.textContent = "Atmosfera";
+        dado1.textContent = corpo.temp;
+        dado2.textContent = corpo.grav;
+        dado3.textContent = corpo.atm;
+      }
+      telemetriaPlaneta.classList.add("visivel");
+    }
+
+    function selecionarCorpoNoSistema(corpo) {
+      corpoSelecionado = corpo;
+      boxInfo3D.classList.remove("alerta", "estrela-ativa");
+
+      if (corpo.ehEstrela) {
+        boxInfo3D.classList.add("estrela-ativa");
+        tag3D.textContent = "Estrela Selecionada • Órbita 3D";
+        btnViajarCorpo.classList.add("modo-estrela");
+        btnViajarCorpo.textContent = "☀️ Viajar para " + corpo.nome;
+      } else {
+        tag3D.textContent = "Planeta Selecionado • Órbita 3D";
+        btnViajarCorpo.classList.remove("modo-estrela");
+        btnViajarCorpo.textContent = "🚀 Viajar para " + corpo.nome;
+      }
+
+      titulo3D.textContent = corpo.nome;
+      desc3D.textContent = corpo.info;
+      preencherTelemetriaCorpo(corpo);
+      btnViajarCorpo.style.display = "inline-block";
+    }
+
+    function limparSelecaoCorpo() {
+      corpoSelecionado = null;
+      telemetriaPlaneta.classList.remove("visivel");
+      btnViajarCorpo.style.display = "none";
+      btnViajarCorpo.classList.remove("modo-estrela");
+
+      if (galaxiaAtualObj && estadoExplosao === "normal") {
+        boxInfo3D.classList.remove("alerta", "estrela-ativa");
+        titulo3D.textContent = galaxiaAtualObj.nome;
+        tag3D.textContent = galaxiaAtualObj.subtitulo;
+        desc3D.textContent = galaxiaAtualObj.descricao;
+      }
+    }
+
+    function iniciarViagemAoCorpo(corpo) {
+      if (!corpo || estadoExplosao !== "normal") return;
+      corpoDestino = corpo;
+      modoVisao3D = "viagem";
+      timerViagem = 0;
+
+      btnViajarCorpo.style.display = "none";
+      telemetriaPlaneta.classList.remove("visivel");
+      boxInfo3D.classList.remove("alerta", "estrela-ativa");
+
+      if (corpo.ehEstrela) {
+        boxInfo3D.classList.add("estrela-ativa");
+        tag3D.textContent = "PROPULSÃO DE DOBRA • ESCUDOS TÉRMICOS ATIVOS";
+        titulo3D.textContent = "Viajando para " + corpo.nome + "...";
+        desc3D.textContent = "Aproximando-se da coroa estelar em velocidade hiperespacial.";
+      } else {
+        tag3D.textContent = "PROPULSÃO DE DOBRA ATIVADA";
+        titulo3D.textContent = "Viajando para " + corpo.nome + "...";
+        desc3D.textContent = "Aproximando-se da órbita planetária em velocidade hiperespacial.";
+      }
+
+      estrelasWarp = Array.from({ length: 160 }, () => ({
+        ang: Math.random() * Math.PI * 2,
+        dist: 15 + Math.random() * 140,
+        vel: 12 + Math.random() * 24,
+        cor: corpo.ehEstrela
+          ? (Math.random() > 0.35 ? "255, 215, 130" : "255, 150, 90")
+          : (Math.random() > 0.3 ? "180, 230, 255" : "255, 243, 196")
+      }));
+    }
+
+    function chegarAoCorpo() {
+      modoVisao3D = "closeup";
+      flashExplosao = 0.8;
+      rotY = 0.25;
+      rotX = 0.28;
+      zoom3D = 1.0;
+      rotacaoGlobo = 0;
+
+      manchasGlobo = [];
+      const qtdManchas = corpoDestino.ehEstrela ? 22 : (corpoDestino.terra ? 16 : 12);
+      for (let i = 0; i < qtdManchas; i++) {
+        const phi = Math.acos(2 * ((i * 0.6180339) % 1) - 1);
+        const theta = i * 2.39996;
+        manchasGlobo.push({
+          nx: Math.sin(phi) * Math.cos(theta),
+          ny: Math.cos(phi) * 0.82,
+          nz: Math.sin(phi) * Math.sin(theta),
+          rx: 0.18 + (i % 4) * 0.07,
+          ry: 0.12 + (i % 3) * 0.05,
+          rot: (i * 0.7) % Math.PI,
+          quente: i % 2 === 0
+        });
+      }
+
+      if (corpoDestino.ehEstrela) {
+        particulasCoroa = Array.from({ length: 65 }, () => ({
+          ang: Math.random() * Math.PI * 2,
+          dist: 1.02 + Math.random() * 0.45,
+          vel: 0.002 + Math.random() * 0.004,
+          tam: 1.5 + Math.random() * 3,
+          fase: Math.random() * Math.PI * 2
+        }));
+
+        boxInfo3D.classList.add("estrela-ativa");
+        tag3D.textContent = "ÓRBITA ESTELAR • COROA E FOTOSFERA 3D";
+      } else {
+        boxInfo3D.classList.remove("estrela-ativa");
+        tag3D.textContent = "ÓRBITA PLANETÁRIA • VISÃO DE SUPERFÍCIE 3D";
+      }
+
+      titulo3D.textContent = corpoDestino.nome;
+      desc3D.textContent = corpoDestino.info;
+      preencherTelemetriaCorpo(corpoDestino);
+
+      btnVoltarSistema.style.display = "inline-block";
+      textoControles3D.textContent = "Arraste para orbitar ao redor de " + corpoDestino.nome + " • Roda do mouse para zoom • ESC para voltar";
+    }
+
+    function voltarParaOSistema() {
+      modoVisao3D = "sistema";
+      corpoDestino = null;
+      corpoSelecionado = null;
+      rotY = 0.4;
+      rotX = 0.58;
+      zoom3D = 1.0;
+
+      btnVoltarSistema.style.display = "none";
+      btnViajarCorpo.style.display = "none";
+      btnViajarCorpo.classList.remove("modo-estrela");
+      telemetriaPlaneta.classList.remove("visivel");
+      textoControles3D.textContent = "Arraste para girar em 3D • Roda do mouse para zoom • Clique em uma estrela ou planeta para viajar até ele";
+
+      if (galaxiaAtualObj) {
+        if (galaxiasExplodidas.has(galaxiaAtualObj.id)) {
+          boxInfo3D.classList.remove("estrela-ativa");
+          boxInfo3D.classList.add("alerta");
+          tag3D.textContent = "REMANESCENTE DE SUPERNOVA";
+          titulo3D.textContent = galaxiaAtualObj.nome + " — Estilhaçada";
+          desc3D.textContent = "Esta galáxia foi destruída pela reação em cadeia do planeta instável.";
+          btnReconstruir3D.style.display = "inline-block";
+        } else {
+          boxInfo3D.classList.remove("alerta", "estrela-ativa");
+          titulo3D.textContent = galaxiaAtualObj.nome;
+          tag3D.textContent = galaxiaAtualObj.subtitulo;
+          desc3D.textContent = galaxiaAtualObj.descricao;
+        }
+      }
+    }
+
+    // =========================================================
+    // EASTER EGG: COLAPSO E EXPLOSÃO DE TODA A GALÁXIA AO CLICAR
+    // =========================================================
+    function iniciarColapsoGalaxia(planeta) {
+      if (estadoExplosao !== "normal") return;
+      estadoExplosao = "colapso";
+      planetaGatilho = planeta;
+      timerColapso = 0;
+
+      btnViajarCorpo.style.display = "none";
+      btnVoltarSistema.style.display = "none";
+      telemetriaPlaneta.classList.remove("visivel");
+
+      if (modoVisao3D !== "sistema") {
+        modoVisao3D = "sistema";
+        rotY = 0.4;
+        rotX = 0.58;
+        zoom3D = 1.0;
+      }
+
+      boxInfo3D.classList.remove("estrela-ativa");
+      boxInfo3D.classList.add("alerta");
+      tag3D.textContent = "⚠ ALERTA DE SINGULARIDADE • EASTER EGG ATIVADO";
+      titulo3D.textContent = "Colapso em " + planeta.nome + "!";
+      desc3D.textContent = "O núcleo do planeta rompeu o equilíbrio gravitacional. Reação em cadeia prestes a destruir toda a galáxia...";
+    }
+
+    function detonarGalaxia3D() {
+      estadoExplosao = "explodida";
+      modoVisao3D = "sistema";
+      flashExplosao = 1.0;
+      tremidaCamera = 26;
+      particulasExplosao3D = [];
+      ondasChoque3D = [];
+
+      const gx = planetaGatilho ? planetaGatilho._x3d || 0 : 0;
+      const gz = planetaGatilho ? planetaGatilho._z3d || 0 : 0;
+      ondasChoque3D.push({ x: gx, y: 0, z: gz, raio: 8, vel: 16, cor: "255, 235, 180", alpha: 1 });
+      ondasChoque3D.push({ x: 0, y: 0, z: 0, raio: 12, vel: 13, cor: "255, 110, 70", alpha: 0.95 });
+      ondasChoque3D.push({ x: 0, y: 0, z: 0, raio: 5, vel: 9, cor: "120, 190, 255", alpha: 0.85 });
+
+      for (const est of sistemaAtual.estrelas) {
+        const ex = est._x3d || 0;
+        const ez = est._z3d || 0;
+        for (let i = 0; i < 240; i++) {
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos(2 * Math.random() - 1);
+          const vel = 2.5 + Math.random() * 14;
+          const cores = ["#ffffff", "#fff5cc", "#ffbe3b", "#ff6d24", "#ff3d5a"];
+          particulasExplosao3D.push({
+            x: ex + (Math.random() - 0.5) * 14,
+            y: (Math.random() - 0.5) * 14,
+            z: ez + (Math.random() - 0.5) * 14,
+            vx: Math.sin(phi) * Math.cos(theta) * vel,
+            vy: Math.cos(phi) * vel * 0.75,
+            vz: Math.sin(phi) * Math.sin(theta) * vel,
+            raio: 1.8 + Math.random() * 4.5,
+            cor: cores[Math.floor(Math.random() * cores.length)]
+          });
+        }
+      }
+
+      for (const plan of sistemaAtual.planetas) {
+        const px = plan._x3d || 0;
+        const pz = plan._z3d || 0;
+        const qtdFrag = plan === planetaGatilho ? 120 : 55;
+        for (let i = 0; i < qtdFrag; i++) {
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos(2 * Math.random() - 1);
+          const vel = 2 + Math.random() * (plan === planetaGatilho ? 15 : 10);
+          const cor = i % 3 === 0 ? "#ffffff" : i % 2 === 0 ? plan.cor1 : plan.cor2;
+          particulasExplosao3D.push({
+            x: px,
+            y: 0,
+            z: pz,
+            vx: Math.sin(phi) * Math.cos(theta) * vel,
+            vy: Math.cos(phi) * vel * 0.8,
+            vz: Math.sin(phi) * Math.sin(theta) * vel,
+            raio: 1.5 + Math.random() * 3.5,
+            cor
+          });
+        }
+      }
+
+      if (galaxiaAtualObj) {
+        galaxiasExplodidas.add(galaxiaAtualObj.id);
+        redesenharUniversoInstantaneo();
+        criarExplosaoGalaxiaNoUniverso(galaxiaAtualObj);
+      }
+
+      tag3D.textContent = "SUPERNOVA TOTAL • GALÁXIA DESTRUÍDA";
+      titulo3D.textContent = galaxiaAtualObj.nome + " — Estilhaçada";
+      desc3D.textContent = "A reação em cadeia consumiu todas as estrelas e planetas deste sistema. Você encontrou o planeta instável oculto!";
+      btnReconstruir3D.style.display = "inline-block";
+    }
+
+    function projetarPonto3D(x, y, z) {
+      const cosY = Math.cos(rotY);
+      const sinY = Math.sin(rotY);
+      const x1 = x * cosY - z * sinY;
+      const z1 = x * sinY + z * cosY;
+
+      const cosX = Math.cos(rotX);
+      const sinX = Math.sin(rotX);
+      const y2 = y * cosX - z1 * sinX;
+      const z2 = y * sinX + z1 * cosX;
+
+      const distanciaCamera = 680;
+      const fov = 620 * zoom3D;
+      const escala = fov / Math.max(120, fov + z2 + distanciaCamera - 620);
+
+      const shakeX = tremidaCamera > 0 ? (Math.random() - 0.5) * tremidaCamera : 0;
+      const shakeY = tremidaCamera > 0 ? (Math.random() - 0.5) * tremidaCamera : 0;
+
+      return {
+        sx: canvas3D.width / 2 + x1 * escala + shakeX,
+        sy: canvas3D.height / 2 + y2 * escala + shakeY,
+        z: z2,
+        escala
+      };
+    }
+
+    function desenharGradeHolografica3D() {
+      const tamanho = 440;
+      const passo = 88;
+      ctx3D.save();
+      ctx3D.strokeStyle = estadoExplosao === "explodida"
+        ? "rgba(255, 110, 90, 0.12)"
+        : "rgba(90, 165, 255, 0.11)";
+      ctx3D.lineWidth = 1;
+
+      for (let i = -tamanho; i <= tamanho; i += passo) {
+        const p1 = projetarPonto3D(i, 38, -tamanho);
+        const p2 = projetarPonto3D(i, 38, tamanho);
+        ctx3D.beginPath();
+        ctx3D.moveTo(p1.sx, p1.sy);
+        ctx3D.lineTo(p2.sx, p2.sy);
+        ctx3D.stroke();
+
+        const p3 = projetarPonto3D(-tamanho, 38, i);
+        const p4 = projetarPonto3D(tamanho, 38, i);
+        ctx3D.beginPath();
+        ctx3D.moveTo(p3.sx, p3.sy);
+        ctx3D.lineTo(p4.sx, p4.sy);
+        ctx3D.stroke();
+      }
+      ctx3D.restore();
+    }
+
+    function desenharOrbita3D(raioOrbita, cor) {
+      const segmentos = 72;
+      ctx3D.save();
+      ctx3D.beginPath();
+      for (let i = 0; i <= segmentos; i++) {
+        const ang = (i / segmentos) * Math.PI * 2;
+        const p = projetarPonto3D(Math.cos(ang) * raioOrbita, 0, Math.sin(ang) * raioOrbita);
+        if (i === 0) ctx3D.moveTo(p.sx, p.sy);
+        else ctx3D.lineTo(p.sx, p.sy);
+      }
+      ctx3D.strokeStyle = cor || "rgba(130, 195, 255, 0.22)";
+      ctx3D.lineWidth = 1.1;
+      ctx3D.stroke();
+      ctx3D.restore();
+    }
+
+    function desenharAnelPlanetario3D(cx, cy, cz, raioInterno, raioExterno, cor, metadeFrente, inclinacao = 0.32) {
+      const passos = 56;
+      const inicio = metadeFrente ? 0 : Math.PI;
+      const fim = metadeFrente ? Math.PI : Math.PI * 2;
+
+      ctx3D.save();
+      ctx3D.beginPath();
+
+      for (let i = 0; i <= passos; i++) {
+        const a = inicio + (i / passos) * (fim - inicio);
+        const lx = Math.cos(a) * raioExterno;
+        const lz = Math.sin(a) * raioExterno;
+        const ly = lz * Math.sin(inclinacao);
+        const lzRot = lz * Math.cos(inclinacao);
+        const p = projetarPonto3D(cx + lx, cy + ly, cz + lzRot);
+        if (i === 0) ctx3D.moveTo(p.sx, p.sy);
+        else ctx3D.lineTo(p.sx, p.sy);
+      }
+
+      for (let i = passos; i >= 0; i--) {
+        const a = inicio + (i / passos) * (fim - inicio);
+        const lx = Math.cos(a) * raioInterno;
+        const lz = Math.sin(a) * raioInterno;
+        const ly = lz * Math.sin(inclinacao);
+        const lzRot = lz * Math.cos(inclinacao);
+        const p = projetarPonto3D(cx + lx, cy + ly, cz + lzRot);
+        ctx3D.lineTo(p.sx, p.sy);
+      }
+
+      ctx3D.closePath();
+      ctx3D.fillStyle = cor;
+      ctx3D.fill();
+      ctx3D.restore();
+    }
+
+    function desenharCorpo3D(item) {
+      const { proj, obj, x, y, z } = item;
+      let r = Math.max(2, obj.raio * proj.escala);
+
+      const emColapso = estadoExplosao === "colapso" && obj === planetaGatilho;
+      if (emColapso) {
+        r *= 1 + (timerColapso / 36) * 2.4;
+      }
+
+      if (obj.anel) {
+        desenharAnelPlanetario3D(x, y, z, obj.anel.interno, obj.anel.externo, obj.anel.cor, false);
+      }
+
+      ctx3D.save();
+
+      if (obj.ehEstrela) {
+        const halo = ctx3D.createRadialGradient(proj.sx, proj.sy, r * 0.4, proj.sx, proj.sy, r * 3.2);
+        halo.addColorStop(0, obj.brilho);
+        halo.addColorStop(0.5, "rgba(255, 160, 40, 0.16)");
+        halo.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx3D.fillStyle = halo;
+        ctx3D.beginPath();
+        ctx3D.arc(proj.sx, proj.sy, r * 3.2, 0, Math.PI * 2);
+        ctx3D.fill();
+
+        // Mira de seleção ou hover na estrela
+        if ((corpoSelecionado === obj || corpoEmHover3D === obj) && estadoExplosao === "normal") {
+          ctx3D.beginPath();
+          ctx3D.arc(proj.sx, proj.sy, r + 9, 0, Math.PI * 2);
+          ctx3D.strokeStyle = corpoSelecionado === obj
+            ? "rgba(255, 215, 100, 0.95)"
+            : "rgba(255, 225, 145, 0.7)";
+          ctx3D.lineWidth = corpoSelecionado === obj ? 2.2 : 1.5;
+          ctx3D.setLineDash([6, 4]);
+          ctx3D.stroke();
+          ctx3D.setLineDash([]);
+        }
+
+        const gradEstrela = ctx3D.createRadialGradient(proj.sx - r * 0.2, proj.sy - r * 0.2, r * 0.1, proj.sx, proj.sy, r);
+        gradEstrela.addColorStop(0, obj.cor1);
+        gradEstrela.addColorStop(1, obj.cor2);
+        ctx3D.fillStyle = gradEstrela;
+        ctx3D.beginPath();
+        ctx3D.arc(proj.sx, proj.sy, r, 0, Math.PI * 2);
+        ctx3D.fill();
+      } else {
+        // Pista visual do planeta Easter Egg (pulso energético avermelhado)
+        if (obj.isEasterEgg && estadoExplosao === "normal") {
+          const pulso = 0.5 + 0.5 * Math.sin(performance.now() * 0.005);
+          ctx3D.beginPath();
+          ctx3D.arc(proj.sx, proj.sy, r + 4 + pulso * 3, 0, Math.PI * 2);
+          ctx3D.strokeStyle = `rgba(255, 95, 130, ${0.22 + pulso * 0.32})`;
+          ctx3D.lineWidth = 1.3;
+          ctx3D.stroke();
+        }
+
+        // Destaque quando o planeta está selecionado ou com mouse em cima
+        if ((corpoSelecionado === obj || corpoEmHover3D === obj) && estadoExplosao === "normal") {
+          ctx3D.beginPath();
+          ctx3D.arc(proj.sx, proj.sy, r + 8, 0, Math.PI * 2);
+          ctx3D.strokeStyle = obj.isEasterEgg
+            ? "rgba(255, 100, 120, 0.92)"
+            : corpoSelecionado === obj
+              ? "rgba(124, 224, 255, 0.95)"
+              : "rgba(130, 210, 255, 0.65)";
+          ctx3D.lineWidth = corpoSelecionado === obj ? 2 : 1.5;
+          ctx3D.setLineDash([5, 4]);
+          ctx3D.stroke();
+          ctx3D.setLineDash([]);
+        }
+
+        if (obj.terra && !emColapso) {
+          const atm = ctx3D.createRadialGradient(proj.sx, proj.sy, r * 0.85, proj.sx, proj.sy, r * 1.45);
+          atm.addColorStop(0, "rgba(100, 195, 255, 0.35)");
+          atm.addColorStop(1, "rgba(100, 195, 255, 0)");
+          ctx3D.fillStyle = atm;
+          ctx3D.beginPath();
+          ctx3D.arc(proj.sx, proj.sy, r * 1.45, 0, Math.PI * 2);
+          ctx3D.fill();
+        }
+
+        const luzX = proj.sx - Math.sign(x || 1) * r * 0.32;
+        const luzY = proj.sy - r * 0.25;
+        const gradPlaneta = ctx3D.createRadialGradient(luzX, luzY, r * 0.12, proj.sx, proj.sy, r);
+        if (emColapso) {
+          gradPlaneta.addColorStop(0, "#ffffff");
+          gradPlaneta.addColorStop(0.6, "#ff5533");
+          gradPlaneta.addColorStop(1, "#660011");
+        } else {
+          gradPlaneta.addColorStop(0, obj.cor1);
+          gradPlaneta.addColorStop(1, obj.cor2);
+        }
+
+        ctx3D.fillStyle = gradPlaneta;
+        ctx3D.beginPath();
+        ctx3D.arc(proj.sx, proj.sy, r, 0, Math.PI * 2);
+        ctx3D.fill();
+
+        if (obj.terra && !emColapso) {
+          ctx3D.save();
+          ctx3D.beginPath();
+          ctx3D.arc(proj.sx, proj.sy, r, 0, Math.PI * 2);
+          ctx3D.clip();
+          ctx3D.fillStyle = "rgba(88, 214, 130, 0.65)";
+          ctx3D.beginPath();
+          ctx3D.ellipse(proj.sx - r * 0.2, proj.sy - r * 0.15, r * 0.42, r * 0.26, 0.4, 0, Math.PI * 2);
+          ctx3D.ellipse(proj.sx + r * 0.28, proj.sy + r * 0.2, r * 0.32, r * 0.22, -0.3, 0, Math.PI * 2);
+          ctx3D.fill();
+          ctx3D.restore();
+        }
+      }
+
+      ctx3D.restore();
+
+      if (obj.anel) {
+        desenharAnelPlanetario3D(x, y, z, obj.anel.interno, obj.anel.externo, obj.anel.cor, true);
+      }
+
+      if (mostrarNomes3D && obj.nome) {
+        ctx3D.save();
+        ctx3D.font = obj.ehEstrela ? "700 13px 'Segoe UI', sans-serif" : "600 11px 'Segoe UI', sans-serif";
+        ctx3D.fillStyle = emColapso
+          ? "#ff9999"
+          : corpoSelecionado === obj
+            ? (obj.ehEstrela ? "#ffcf70" : "#7ce0ff")
+            : obj.ehEstrela
+              ? "#fff3c4"
+              : "#dcebff";
+        ctx3D.textAlign = "center";
+        ctx3D.shadowColor = "rgba(0, 0, 0, 0.9)";
+        ctx3D.shadowBlur = 4;
+        ctx3D.fillText(obj.nome, proj.sx, proj.sy - r - 8);
+        ctx3D.restore();
+      }
+    }
+
+    // =========================================================
+    // RENDERIZAÇÃO DA VIAGEM HIPERESPACIAL E DO CLOSE-UP 3D
+    // =========================================================
+    function renderizarViagemWarp() {
+      timerViagem++;
+      const cx = canvas3D.width / 2;
+      const cy = canvas3D.height / 2;
+      const prog = timerViagem / 70;
+
+      ctx3D.fillStyle = "rgba(3, 5, 16, 0.42)";
+      ctx3D.fillRect(0, 0, canvas3D.width, canvas3D.height);
+
+      for (const s of estrelasWarp) {
+        const distAnterior = s.dist;
+        s.dist += s.vel * (1 + prog * 2.5);
+        s.vel *= 1.04;
+
+        const x1 = cx + Math.cos(s.ang) * distAnterior;
+        const y1 = cy + Math.sin(s.ang) * distAnterior;
+        const x2 = cx + Math.cos(s.ang) * s.dist;
+        const y2 = cy + Math.sin(s.ang) * s.dist;
+
+        ctx3D.save();
+        ctx3D.beginPath();
+        ctx3D.moveTo(x1, y1);
+        ctx3D.lineTo(x2, y2);
+        ctx3D.strokeStyle = `rgba(${s.cor}, ${Math.min(1, prog * 1.6)})`;
+        ctx3D.lineWidth = 1.5 + prog * 2.2;
+        ctx3D.lineCap = "round";
+        ctx3D.stroke();
+        ctx3D.restore();
+
+        if (s.dist > Math.max(cx, cy) * 1.4) {
+          s.dist = 10 + Math.random() * 60;
+          s.vel = 14 + Math.random() * 18;
+        }
+      }
+
+      const raioAprox = 6 + Math.pow(prog, 2.4) * (corpoDestino.ehEstrela ? 175 : 145);
+
+      if (corpoDestino.ehEstrela) {
+        const halo = ctx3D.createRadialGradient(cx, cy, raioAprox * 0.2, cx, cy, raioAprox * 2.4);
+        halo.addColorStop(0, corpoDestino.brilho);
+        halo.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx3D.fillStyle = halo;
+        ctx3D.beginPath();
+        ctx3D.arc(cx, cy, raioAprox * 2.4, 0, Math.PI * 2);
+        ctx3D.fill();
+      }
+
+      const grad = ctx3D.createRadialGradient(
+        cx - (corpoDestino.ehEstrela ? 0 : raioAprox * 0.3),
+        cy - (corpoDestino.ehEstrela ? 0 : raioAprox * 0.25),
+        raioAprox * 0.1,
+        cx,
+        cy,
+        raioAprox
+      );
+      grad.addColorStop(0, corpoDestino.cor1);
+      grad.addColorStop(1, corpoDestino.cor2);
+
+      ctx3D.beginPath();
+      ctx3D.arc(cx, cy, raioAprox, 0, Math.PI * 2);
+      ctx3D.fillStyle = grad;
+      ctx3D.fill();
+
+      if (timerViagem >= 70) {
+        chegarAoCorpo();
+      }
+    }
+
+    function renderizarEstrelaCloseUp() {
+      if (!corpoDestino) return;
+
+      if (!pausado3D) {
+        rotacaoGlobo += 0.005;
+        tempo3D += 0.02;
+      }
+
+      ctx3D.clearRect(0, 0, canvas3D.width, canvas3D.height);
+
+      // 1. Estrelas de fundo 3D orbitáveis
+      ctx3D.fillStyle = "rgba(255, 255, 255, 0.72)";
+      for (const est of estrelasFundo3D) {
+        const p = projetarPonto3D(est.x, est.y, est.z);
+        if (p.z > -500) {
+          ctx3D.beginPath();
+          ctx3D.arc(p.sx, p.sy, est.tam * Math.min(1.4, p.escala), 0, Math.PI * 2);
+          ctx3D.fill();
+        }
+      }
+
+      // 2. Se for um sistema binário (ex: Sol Alfa e Sol Beta), mostra a estrela companheira orbitando ao fundo
+      if (sistemaAtual.estrelas.length > 1) {
+        const companheira = sistemaAtual.estrelas.find((s) => s !== corpoDestino);
+        if (companheira) {
+          const angComp = tempo3D * 0.6;
+          const compProj = projetarPonto3D(Math.cos(angComp) * 440, -75, Math.sin(angComp) * 440 - 180);
+          if (compProj.z > -450) {
+            const rComp = Math.max(14, 34 * compProj.escala);
+            const haloComp = ctx3D.createRadialGradient(compProj.sx, compProj.sy, rComp * 0.2, compProj.sx, compProj.sy, rComp * 4.2);
+            haloComp.addColorStop(0, companheira.brilho);
+            haloComp.addColorStop(1, "rgba(0, 0, 0, 0)");
+            ctx3D.fillStyle = haloComp;
+            ctx3D.beginPath();
+            ctx3D.arc(compProj.sx, compProj.sy, rComp * 4.2, 0, Math.PI * 2);
+            ctx3D.fill();
+
+            const gradComp = ctx3D.createRadialGradient(compProj.sx, compProj.sy, rComp * 0.1, compProj.sx, compProj.sy, rComp);
+            gradComp.addColorStop(0, companheira.cor1);
+            gradComp.addColorStop(1, companheira.cor2);
+            ctx3D.fillStyle = gradComp;
+            ctx3D.beginPath();
+            ctx3D.arc(compProj.sx, compProj.sy, rComp, 0, Math.PI * 2);
+            ctx3D.fill();
+
+            if (mostrarNomes3D) {
+              ctx3D.font = "600 12px 'Segoe UI', sans-serif";
+              ctx3D.fillStyle = "#fff3c4";
+              ctx3D.textAlign = "center";
+              ctx3D.fillText(companheira.nome, compProj.sx, compProj.sy - rComp - 8);
+            }
+          }
+        }
+      }
+
+      const centro = projetarPonto3D(0, 0, 0);
+      const pulsoCoroa = 1 + 0.035 * Math.sin(tempo3D * 2.2);
+      const raioEstrela = 148 * centro.escala;
+
+      // 3. Coroa solar externa gigante e pulsante
+      ctx3D.save();
+      const gradCoroaExterna = ctx3D.createRadialGradient(
+        centro.sx, centro.sy, raioEstrela * 0.75,
+        centro.sx, centro.sy, raioEstrela * 2.75 * pulsoCoroa
+      );
+      gradCoroaExterna.addColorStop(0, corpoDestino.brilho);
+      gradCoroaExterna.addColorStop(0.45, "rgba(255, 145, 45, 0.18)");
+      gradCoroaExterna.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx3D.fillStyle = gradCoroaExterna;
+      ctx3D.beginPath();
+      ctx3D.arc(centro.sx, centro.sy, raioEstrela * 2.75 * pulsoCoroa, 0, Math.PI * 2);
+      ctx3D.fill();
+
+      // 4. Labaredas / Proeminências solares dinâmicas na borda da estrela
+      const numLabaredas = 7;
+      for (let i = 0; i < numLabaredas; i++) {
+        const angBase = (i / numLabaredas) * Math.PI * 2 + rotacaoGlobo * 0.8 + rotY;
+        const abertura = 0.24 + 0.06 * Math.sin(tempo3D * 1.8 + i);
+        const alturaArco = raioEstrela * (0.24 + 0.14 * Math.sin(tempo3D * 2.5 + i * 1.7));
+
+        const a1 = angBase - abertura;
+        const a2 = angBase + abertura;
+        const x1 = centro.sx + Math.cos(a1) * (raioEstrela * 0.96);
+        const y1 = centro.sy + Math.sin(a1) * (raioEstrela * 0.96);
+        const x2 = centro.sx + Math.cos(a2) * (raioEstrela * 0.96);
+        const y2 = centro.sy + Math.sin(a2) * (raioEstrela * 0.96);
+        const cxCtrl = centro.sx + Math.cos(angBase) * (raioEstrela + alturaArco);
+        const cyCtrl = centro.sy + Math.sin(angBase) * (raioEstrela + alturaArco);
+
+        ctx3D.beginPath();
+        ctx3D.moveTo(x1, y1);
+        ctx3D.quadraticCurveTo(cxCtrl, cyCtrl, x2, y2);
+        ctx3D.strokeStyle = corpoDestino.cor2;
+        ctx3D.lineWidth = Math.max(2, 5 * centro.escala);
+        ctx3D.globalAlpha = 0.55 + 0.25 * Math.sin(tempo3D * 3 + i);
+        ctx3D.stroke();
+      }
+      ctx3D.globalAlpha = 1;
+
+      // 5. Fotosfera principal da estrela (auto-iluminada com escurecimento de borda)
+      const gradFotosfera = ctx3D.createRadialGradient(
+        centro.sx, centro.sy, raioEstrela * 0.1,
+        centro.sx, centro.sy, raioEstrela
+      );
+      gradFotosfera.addColorStop(0, "#ffffff");
+      gradFotosfera.addColorStop(0.45, corpoDestino.cor1);
+      gradFotosfera.addColorStop(0.88, corpoDestino.cor2);
+      gradFotosfera.addColorStop(1, "rgba(180, 55, 10, 0.95)");
+
+      ctx3D.fillStyle = gradFotosfera;
+      ctx3D.beginPath();
+      ctx3D.arc(centro.sx, centro.sy, raioEstrela, 0, Math.PI * 2);
+      ctx3D.fill();
+
+      // 6. Células de convecção, regiões ativas e manchas solares girando em 3D
+      ctx3D.save();
+      ctx3D.beginPath();
+      ctx3D.arc(centro.sx, centro.sy, raioEstrela, 0, Math.PI * 2);
+      ctx3D.clip();
+
+      for (const m of manchasGlobo) {
+        const angTotal = rotacaoGlobo + rotY;
+        const x1 = m.nx * Math.cos(angTotal) - m.nz * Math.sin(angTotal);
+        const z1 = m.nx * Math.sin(angTotal) + m.nz * Math.cos(angTotal);
+        const y2 = m.ny * Math.cos(rotX) - z1 * Math.sin(rotX);
+        const z2 = m.ny * Math.sin(rotX) + z1 * Math.cos(rotX);
+
+        if (z2 < 0.15) {
+          const fatorFrente = Math.max(0.15, Math.min(1, 1 - Math.abs(z2)));
+          const px = centro.sx + x1 * raioEstrela * 0.9;
+          const py = centro.sy + y2 * raioEstrela * 0.9;
+
+          ctx3D.fillStyle = m.quente
+            ? "rgba(255, 255, 255, 0.24)"
+            : "rgba(95, 25, 0, 0.22)";
+
+          ctx3D.beginPath();
+          ctx3D.ellipse(
+            px,
+            py,
+            m.rx * raioEstrela * fatorFrente,
+            m.ry * raioEstrela,
+            m.rot,
+            0,
+            Math.PI * 2
+          );
+          ctx3D.fill();
+        }
+      }
+      ctx3D.restore();
+
+      // 7. Partículas de plasma e vento solar orbitando a estrela
+      for (const p of particulasCoroa) {
+        if (!pausado3D) {
+          p.ang += p.vel;
+          p.fase += 0.05;
+        }
+        const rPart = raioEstrela * (p.dist + 0.05 * Math.sin(p.fase));
+        const px = centro.sx + Math.cos(p.ang) * rPart;
+        const py = centro.sy + Math.sin(p.ang) * rPart;
+
+        ctx3D.fillStyle = corpoDestino.cor1;
+        ctx3D.globalAlpha = 0.35 + 0.45 * Math.sin(p.fase);
+        ctx3D.beginPath();
+        ctx3D.arc(px, py, p.tam * centro.escala, 0, Math.PI * 2);
+        ctx3D.fill();
+      }
+      ctx3D.globalAlpha = 1;
+      ctx3D.restore();
+    }
+
+    function renderizarPlanetaCloseUp() {
+      if (!corpoDestino) return;
+
+      if (corpoDestino.ehEstrela) {
+        renderizarEstrelaCloseUp();
+        return;
+      }
+
+      if (!pausado3D) {
+        rotacaoGlobo += 0.0045;
+        tempo3D += 0.015;
+      }
+
+      ctx3D.clearRect(0, 0, canvas3D.width, canvas3D.height);
+
+      // 1. Estrelas de fundo 3D orbitáveis
+      ctx3D.fillStyle = "rgba(255, 255, 255, 0.72)";
+      for (const est of estrelasFundo3D) {
+        const p = projetarPonto3D(est.x, est.y, est.z);
+        if (p.z > -500) {
+          ctx3D.beginPath();
+          ctx3D.arc(p.sx, p.sy, est.tam * Math.min(1.4, p.escala), 0, Math.PI * 2);
+          ctx3D.fill();
+        }
+      }
+
+      // 2. Estrela hospedeira (Sol) brilhando no fundo do espaço
+      const estrelaHost = sistemaAtual.estrelas[0];
+      const solWorld = { x: -460, y: -150, z: -380 };
+      const solProj = projetarPonto3D(solWorld.x, solWorld.y, solWorld.z);
+      if (solProj.z > -450) {
+        const rSol = Math.max(12, 34 * solProj.escala);
+        const haloSol = ctx3D.createRadialGradient(solProj.sx, solProj.sy, rSol * 0.3, solProj.sx, solProj.sy, rSol * 4.5);
+        haloSol.addColorStop(0, estrelaHost ? estrelaHost.brilho : "rgba(255, 210, 100, 0.65)");
+        haloSol.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx3D.fillStyle = haloSol;
+        ctx3D.beginPath();
+        ctx3D.arc(solProj.sx, solProj.sy, rSol * 4.5, 0, Math.PI * 2);
+        ctx3D.fill();
+
+        ctx3D.fillStyle = estrelaHost ? estrelaHost.cor1 : "#fffbe0";
+        ctx3D.beginPath();
+        ctx3D.arc(solProj.sx, solProj.sy, rSol, 0, Math.PI * 2);
+        ctx3D.fill();
+      }
+
+      const centro = projetarPonto3D(0, 0, 0);
+      const raioGlobo = 135 * centro.escala;
+      const escalaAnel = raioGlobo / Math.max(6, corpoDestino.raio);
+
+      // 3. Anéis planetários (parte de trás)
+      if (corpoDestino.anel) {
+        desenharAnelPlanetario3D(
+          0, 0, 0,
+          corpoDestino.anel.interno * escalaAnel * 0.85,
+          corpoDestino.anel.externo * escalaAnel * 0.85,
+          corpoDestino.anel.cor,
+          false,
+          0.26
+        );
+      }
+
+      // 4. Luas que estiverem atrás do planeta (Z > 0)
+      const luasProjetadas = [];
+      if (corpoDestino.luas) {
+        for (const lua of corpoDestino.luas) {
+          const angLua = lua.ang + tempo3D * 1.4;
+          const distLua = 235;
+          const lx = Math.cos(angLua) * distLua;
+          const lz = Math.sin(angLua) * distLua;
+          const ly = Math.sin(angLua) * 32;
+          const projLua = projetarPonto3D(lx, ly, lz);
+          luasProjetadas.push({ lua, proj: projLua, lx, ly, lz });
+        }
+      }
+
+      for (const itemLua of luasProjetadas) {
+        if (itemLua.proj.z >= 0) {
+          desenharLuaCloseUp(itemLua);
+        }
+      }
+
+      // 5. Atmosfera externa do planeta
+      ctx3D.save();
+      const atmCor = corpoDestino.terra
+        ? "rgba(95, 195, 255, 0.36)"
+        : "rgba(180, 215, 255, 0.18)";
+      const gradAtm = ctx3D.createRadialGradient(
+        centro.sx, centro.sy, raioGlobo * 0.92,
+        centro.sx, centro.sy, raioGlobo * 1.24
+      );
+      gradAtm.addColorStop(0, atmCor);
+      gradAtm.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx3D.fillStyle = gradAtm;
+      ctx3D.beginPath();
+      ctx3D.arc(centro.sx, centro.sy, raioGlobo * 1.24, 0, Math.PI * 2);
+      ctx3D.fill();
+
+      // 6. Esfera principal do planeta iluminada na direção do Sol
+      const dirX = solProj.sx - centro.sx;
+      const dirY = solProj.sy - centro.sy;
+      const mag = Math.hypot(dirX, dirY) || 1;
+      const luzX = centro.sx + (dirX / mag) * raioGlobo * 0.42;
+      const luzY = centro.sy + (dirY / mag) * raioGlobo * 0.42;
+
+      const gradEsfera = ctx3D.createRadialGradient(
+        luzX, luzY, raioGlobo * 0.12,
+        centro.sx, centro.sy, raioGlobo * 1.05
+      );
+      gradEsfera.addColorStop(0, corpoDestino.cor1);
+      gradEsfera.addColorStop(0.78, corpoDestino.cor2);
+      gradEsfera.addColorStop(1, "#04060f");
+
+      ctx3D.fillStyle = gradEsfera;
+      ctx3D.beginPath();
+      ctx3D.arc(centro.sx, centro.sy, raioGlobo, 0, Math.PI * 2);
+      ctx3D.fill();
+
+      // 7. Detalhes de superfície girando em 3D
+      ctx3D.save();
+      ctx3D.beginPath();
+      ctx3D.arc(centro.sx, centro.sy, raioGlobo, 0, Math.PI * 2);
+      ctx3D.clip();
+
+      if (corpoDestino.gasoso) {
+        for (let b = -4; b <= 4; b++) {
+          const yFaixa = centro.sy + (b / 4.5) * raioGlobo;
+          const altFaixa = raioGlobo * (0.07 + (Math.abs(b) % 2) * 0.04);
+          ctx3D.fillStyle = b % 2 === 0 ? "rgba(255, 255, 255, 0.11)" : "rgba(0, 0, 0, 0.16)";
+          ctx3D.fillRect(centro.sx - raioGlobo, yFaixa - altFaixa / 2, raioGlobo * 2, altFaixa);
+        }
+      }
+
+      for (const m of manchasGlobo) {
+        const angTotal = rotacaoGlobo + rotY;
+        const x1 = m.nx * Math.cos(angTotal) - m.nz * Math.sin(angTotal);
+        const z1 = m.nx * Math.sin(angTotal) + m.nz * Math.cos(angTotal);
+        const y2 = m.ny * Math.cos(rotX) - z1 * Math.sin(rotX);
+        const z2 = m.ny * Math.sin(rotX) + z1 * Math.cos(rotX);
+
+        if (z2 < 0.15) {
+          const fatorFrente = Math.max(0.15, Math.min(1, 1 - Math.abs(z2)));
+          const px = centro.sx + x1 * raioGlobo * 0.92;
+          const py = centro.sy + y2 * raioGlobo * 0.92;
+
+          ctx3D.fillStyle = corpoDestino.terra
+            ? "rgba(76, 205, 125, 0.55)"
+            : corpoDestino.gasoso
+              ? "rgba(255, 240, 210, 0.14)"
+              : "rgba(0, 0, 0, 0.18)";
+
+          ctx3D.beginPath();
+          ctx3D.ellipse(
+            px,
+            py,
+            m.rx * raioGlobo * fatorFrente,
+            m.ry * raioGlobo,
+            m.rot,
+            0,
+            Math.PI * 2
+          );
+          ctx3D.fill();
+        }
+      }
+
+      const sombraGrad = ctx3D.createRadialGradient(
+        luzX, luzY, raioGlobo * 0.55,
+        centro.sx, centro.sy, raioGlobo * 1.02
+      );
+      sombraGrad.addColorStop(0, "rgba(0, 0, 0, 0)");
+      sombraGrad.addColorStop(1, "rgba(2, 4, 14, 0.72)");
+      ctx3D.fillStyle = sombraGrad;
+      ctx3D.fillRect(centro.sx - raioGlobo, centro.sy - raioGlobo, raioGlobo * 2, raioGlobo * 2);
+
+      ctx3D.restore();
+      ctx3D.restore();
+
+      // 8. Anéis planetários (parte da frente)
+      if (corpoDestino.anel) {
+        desenharAnelPlanetario3D(
+          0, 0, 0,
+          corpoDestino.anel.interno * escalaAnel * 0.85,
+          corpoDestino.anel.externo * escalaAnel * 0.85,
+          corpoDestino.anel.cor,
+          true,
+          0.26
+        );
+      }
+
+      // 9. Luas que estiverem na frente do planeta (Z < 0)
+      for (const itemLua of luasProjetadas) {
+        if (itemLua.proj.z < 0) {
+          desenharLuaCloseUp(itemLua);
+        }
+      }
+    }
+
+    function desenharLuaCloseUp(itemLua) {
+      const { lua, proj } = itemLua;
+      const rLua = Math.max(8, 22 * proj.escala);
+
+      ctx3D.save();
+      const grad = ctx3D.createRadialGradient(
+        proj.sx - rLua * 0.35, proj.sy - rLua * 0.35, rLua * 0.1,
+        proj.sx, proj.sy, rLua
+      );
+      grad.addColorStop(0, lua.cor1);
+      grad.addColorStop(1, lua.cor2);
+      ctx3D.fillStyle = grad;
+      ctx3D.beginPath();
+      ctx3D.arc(proj.sx, proj.sy, rLua, 0, Math.PI * 2);
+      ctx3D.fill();
+
+      if (mostrarNomes3D) {
+        ctx3D.font = "600 12px 'Segoe UI', sans-serif";
+        ctx3D.fillStyle = "#dcebff";
+        ctx3D.textAlign = "center";
+        ctx3D.fillText(lua.nome, proj.sx, proj.sy - rLua - 8);
+      }
+      ctx3D.restore();
+    }
+
+    function desenharExplosao3D() {
+      for (let i = ondasChoque3D.length - 1; i >= 0; i--) {
+        const onda = ondasChoque3D[i];
+        onda.raio += onda.vel;
+        onda.alpha *= 0.965;
+
+        const segs = 64;
+        ctx3D.save();
+        ctx3D.beginPath();
+        for (let s = 0; s <= segs; s++) {
+          const a = (s / segs) * Math.PI * 2;
+          const p = projetarPonto3D(
+            onda.x + Math.cos(a) * onda.raio,
+            onda.y,
+            onda.z + Math.sin(a) * onda.raio
+          );
+          if (s === 0) ctx3D.moveTo(p.sx, p.sy);
+          else ctx3D.lineTo(p.sx, p.sy);
+        }
+        ctx3D.strokeStyle = `rgba(${onda.cor}, ${onda.alpha})`;
+        ctx3D.lineWidth = 3;
+        ctx3D.stroke();
+        ctx3D.restore();
+
+        if (onda.alpha < 0.02) {
+          ondasChoque3D.splice(i, 1);
+        }
+      }
+
+      const centroProj = projetarPonto3D(0, 0, 0);
+      const rRem = 55 * centroProj.escala;
+      const gradRem = ctx3D.createRadialGradient(centroProj.sx, centroProj.sy, 2, centroProj.sx, centroProj.sy, rRem * 2.5);
+      gradRem.addColorStop(0, "rgba(255, 240, 200, 0.55)");
+      gradRem.addColorStop(0.4, "rgba(255, 95, 65, 0.22)");
+      gradRem.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx3D.fillStyle = gradRem;
+      ctx3D.beginPath();
+      ctx3D.arc(centroProj.sx, centroProj.sy, rRem * 2.5, 0, Math.PI * 2);
+      ctx3D.fill();
+
+      const projetadas = [];
+      for (const p of particulasExplosao3D) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.z += p.vz;
+        p.vx *= 0.985;
+        p.vy *= 0.985;
+        p.vz *= 0.985;
+
+        const proj = projetarPonto3D(p.x, p.y, p.z);
+        if (proj.z > -520) {
+          projetadas.push({ proj, p });
+        }
+      }
+
+      projetadas.sort((a, b) => b.proj.z - a.proj.z);
+
+      for (const item of projetadas) {
+        const { proj, p } = item;
+        const r = Math.max(1, p.raio * proj.escala);
+        ctx3D.fillStyle = p.cor;
+        ctx3D.beginPath();
+        ctx3D.arc(proj.sx, proj.sy, r, 0, Math.PI * 2);
+        ctx3D.fill();
+      }
+    }
+
+    function renderizarCena3D() {
+      if (!modalAberto || !sistemaAtual) return;
+
+      if (modoVisao3D === "viagem") {
+        renderizarViagemWarp();
+        requestAnimationFrame(renderizarCena3D);
+        return;
+      }
+
+      if (modoVisao3D === "closeup" && estadoExplosao === "normal") {
+        renderizarPlanetaCloseUp();
+        if (flashExplosao > 0) {
+          ctx3D.fillStyle = corpoDestino && corpoDestino.ehEstrela
+            ? `rgba(255, 235, 190, ${flashExplosao})`
+            : `rgba(210, 245, 255, ${flashExplosao})`;
+          ctx3D.fillRect(0, 0, canvas3D.width, canvas3D.height);
+          flashExplosao = Math.max(0, flashExplosao - 0.045);
+        }
+        requestAnimationFrame(renderizarCena3D);
+        return;
+      }
+
+      if (!pausado3D && estadoExplosao === "normal") {
+        tempo3D += 0.012;
+      }
+
+      if (estadoExplosao === "colapso") {
+        timerColapso++;
+        tremidaCamera = 3 + timerColapso * 0.45;
+        if (timerColapso >= 36) {
+          detonarGalaxia3D();
+        }
+      } else if (tremidaCamera > 0) {
+        tremidaCamera *= 0.91;
+        if (tremidaCamera < 0.2) tremidaCamera = 0;
+      }
+
+      ctx3D.clearRect(0, 0, canvas3D.width, canvas3D.height);
+
+      ctx3D.fillStyle = "rgba(255, 255, 255, 0.65)";
+      for (const est of estrelasFundo3D) {
+        const p = projetarPonto3D(est.x, est.y, est.z);
+        if (p.z > -500) {
+          ctx3D.beginPath();
+          ctx3D.arc(p.sx, p.sy, est.tam * Math.min(1.4, p.escala), 0, Math.PI * 2);
+          ctx3D.fill();
+        }
+      }
+
+      desenharGradeHolografica3D();
+
+      if (estadoExplosao === "explodida") {
+        desenharExplosao3D();
+      } else {
+        for (const p of sistemaAtual.planetas) {
+          const destaqueOrbita = corpoSelecionado === p
+            ? "rgba(124, 224, 255, 0.75)"
+            : p.terra
+              ? "rgba(88, 180, 255, 0.42)"
+              : "rgba(130, 195, 255, 0.2)";
+          desenharOrbita3D(p.dist, destaqueOrbita);
+        }
+
+        const filaRender = [];
+
+        for (const est of sistemaAtual.estrelas) {
+          const ang = est.ang + tempo3D * est.vel;
+          const x = Math.cos(ang) * est.dist;
+          const z = Math.sin(ang) * est.dist;
+          const proj = projetarPonto3D(x, 0, z);
+
+          est._x3d = x;
+          est._z3d = z;
+          est._zProj = proj.z;
+          est._sx = proj.sx;
+          est._sy = proj.sy;
+          est._raioTela = Math.max(18, est.raio * proj.escala + 8);
+
+          filaRender.push({ proj, obj: est, x, y: 0, z });
+        }
+
+        for (const plan of sistemaAtual.planetas) {
+          const ang = plan.ang + tempo3D * plan.vel;
+          const px = Math.cos(ang) * plan.dist;
+          const pz = Math.sin(ang) * plan.dist;
+          const projPlan = projetarPonto3D(px, 0, pz);
+
+          plan._x3d = px;
+          plan._z3d = pz;
+          plan._zProj = projPlan.z;
+          plan._sx = projPlan.sx;
+          plan._sy = projPlan.sy;
+          plan._raioTela = Math.max(13, plan.raio * projPlan.escala + 7);
+
+          filaRender.push({ proj: projPlan, obj: plan, x: px, y: 0, z: pz });
+
+          if (plan.luas) {
+            for (const lua of plan.luas) {
+              const angLua = lua.ang + tempo3D * lua.vel;
+              const lx = px + Math.cos(angLua) * lua.dist;
+              const lz = pz + Math.sin(angLua) * lua.dist;
+              const ly = Math.sin(angLua) * 3.5;
+              const projLua = projetarPonto3D(lx, ly, lz);
+              filaRender.push({ proj: projLua, obj: lua, x: lx, y: ly, z: lz });
+            }
+          }
+        }
+
+        filaRender.sort((a, b) => b.proj.z - a.proj.z);
+
+        for (const item of filaRender) {
+          desenharCorpo3D(item);
+        }
+      }
+
+      if (flashExplosao > 0) {
+        ctx3D.fillStyle = `rgba(255, 245, 220, ${flashExplosao})`;
+        ctx3D.fillRect(0, 0, canvas3D.width, canvas3D.height);
+        flashExplosao = Math.max(0, flashExplosao - 0.035);
+      }
+
+      requestAnimationFrame(renderizarCena3D);
+    }
+
+    function encontrarCorpoSobCursor(mouseX, mouseY) {
+      if (!sistemaAtual) return null;
+      const todos = [...sistemaAtual.planetas, ...sistemaAtual.estrelas];
+      const atingidos = [];
+
+      for (const corpo of todos) {
+        if (corpo._sx !== undefined) {
+          const dist = Math.hypot(mouseX - corpo._sx, mouseY - corpo._sy);
+          if (dist <= corpo._raioTela) {
+            atingidos.push({ corpo, z: corpo._zProj || 0, dist });
+          }
+        }
+      }
+
+      if (atingidos.length === 0) return null;
+      // Prioriza o corpo mais próximo da câmera (menor z)
+      atingidos.sort((a, b) => a.z - b.z);
+      return atingidos[0].corpo;
+    }
+
+    function abrirProjecao3D(galaxia) {
+      galaxiaAtualObj = galaxia;
+      sistemaAtual = sistemas3D[galaxia.id] || sistemas3D["via-lactea"];
+
+      modoVisao3D = "sistema";
+      corpoSelecionado = null;
+      corpoDestino = null;
+      rotY = 0.4;
+      rotX = 0.58;
+      zoom3D = 1.0;
+      pausado3D = false;
+      corpoEmHover3D = null;
+      btnPausar3D.textContent = "Pausar Órbitas";
+      btnVoltarSistema.style.display = "none";
+      btnViajarCorpo.style.display = "none";
+      btnViajarCorpo.classList.remove("modo-estrela");
+      telemetriaPlaneta.classList.remove("visivel");
+
+      if (galaxiasExplodidas.has(galaxia.id)) {
+        estadoExplosao = "explodida";
+        boxInfo3D.classList.remove("estrela-ativa");
+        boxInfo3D.classList.add("alerta");
+        tag3D.textContent = "REMANESCENTE DE SUPERNOVA";
+        titulo3D.textContent = galaxia.nome + " — Estilhaçada";
+        desc3D.textContent = "Esta galáxia foi destruída pela reação em cadeia do planeta instável. Clique em Reconstruir Galáxia para restaurá-la.";
+        btnReconstruir3D.style.display = "inline-block";
+        if (particulasExplosao3D.length === 0) {
+          detonarGalaxia3D();
+          flashExplosao = 0;
+          tremidaCamera = 0;
+        }
+      } else {
+        estadoExplosao = "normal";
+        planetaGatilho = null;
+        particulasExplosao3D = [];
+        ondasChoque3D = [];
+        boxInfo3D.classList.remove("alerta", "estrela-ativa");
+        titulo3D.textContent = galaxia.nome;
+        tag3D.textContent = galaxia.subtitulo;
+        desc3D.textContent = galaxia.descricao;
+        btnReconstruir3D.style.display = "none";
+      }
+
+      modalAberto = true;
+      modal3D.classList.add("aberto");
+      renderizarCena3D();
+    }
+
+    function fecharProjecao3D() {
+      modalAberto = false;
+      modoVisao3D = "sistema";
+      modal3D.classList.remove("aberto");
+    }
+
+    // Controles de mouse e interação 3D
+    canvas3D.addEventListener("mousedown", (e) => {
+      arrastando = true;
+      mouseDownX = e.clientX;
+      mouseDownY = e.clientY;
+      ultimoMouseX = e.clientX;
+      ultimoMouseY = e.clientY;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (modalAberto) {
+        if (arrastando) {
+          const dx = e.clientX - ultimoMouseX;
+          const dy = e.clientY - ultimoMouseY;
+          rotY += dx * 0.007;
+          rotX = Math.max(-1.35, Math.min(1.35, rotX + dy * 0.007));
+          ultimoMouseX = e.clientX;
+          ultimoMouseY = e.clientY;
+          return;
+        }
+
+        if (sistemaAtual && estadoExplosao === "normal" && modoVisao3D === "sistema") {
+          const achado = encontrarCorpoSobCursor(e.clientX, e.clientY);
+          corpoEmHover3D = achado;
+          canvas3D.style.cursor = achado ? "pointer" : "grab";
+        } else {
+          canvas3D.style.cursor = "grab";
+        }
+        return;
+      }
+
+      if (criacaoIniciada && !modalAberto) {
+        const mx = e.clientX - canvas.width / 2;
+        const my = canvas.height / 2 - e.clientY;
+        let encontrada = null;
+
+        for (const g of galaxiasClicaveis) {
+          const dist = Math.hypot(mx - g.x, my - g.y);
+          if (dist <= g.raioClique) {
+            encontrada = g;
+            break;
+          }
+        }
+
+        galaxiaEmFoco = encontrada;
+        document.body.style.cursor = encontrada ? "pointer" : "default";
+      }
+    });
+
+    window.addEventListener("mouseup", (e) => {
+      if (arrastando && modalAberto && sistemaAtual && estadoExplosao === "normal" && modoVisao3D === "sistema") {
+        const moveu = Math.hypot(e.clientX - mouseDownX, e.clientY - mouseDownY);
+        if (moveu < 6 && e.target === canvas3D) {
+          const corpoClicado = encontrarCorpoSobCursor(e.clientX, e.clientY);
+          if (corpoClicado) {
+            if (!corpoClicado.ehEstrela && corpoClicado.isEasterEgg) {
+              limparSelecaoCorpo();
+              iniciarColapsoGalaxia(corpoClicado);
+            } else {
+              selecionarCorpoNoSistema(corpoClicado);
+            }
+          } else {
+            limparSelecaoCorpo();
+          }
+        }
+      }
+      arrastando = false;
+    });
+
+    canvas3D.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      zoom3D = Math.max(0.45, Math.min(2.4, zoom3D - e.deltaY * 0.0008));
+    }, { passive: false });
+
+    window.addEventListener("click", (e) => {
+      if (!criacaoIniciada || modalAberto) return;
+
+      const mx = e.clientX - canvas.width / 2;
+      const my = canvas.height / 2 - e.clientY;
+
+      for (const g of galaxiasClicaveis) {
+        const dist = Math.hypot(mx - g.x, my - g.y);
+        if (dist <= g.raioClique) {
+          abrirProjecao3D(g);
+          break;
+        }
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modalAberto) {
+        if (modoVisao3D === "closeup") {
+          voltarParaOSistema();
+        } else {
+          fecharProjecao3D();
+        }
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      canvasEfeitos.width = window.innerWidth;
+      canvasEfeitos.height = window.innerHeight;
+      canvas3D.width = window.innerWidth;
+      canvas3D.height = window.innerHeight;
+    });
+
+    btnViajarCorpo.addEventListener("click", () => {
+      if (corpoSelecionado) {
+        iniciarViagemAoCorpo(corpoSelecionado);
+      }
+    });
+
+    btnVoltarSistema.addEventListener("click", voltarParaOSistema);
+    btnFechar3D.addEventListener("click", fecharProjecao3D);
+
+    btnReconstruir3D.addEventListener("click", () => {
+      if (!galaxiaAtualObj) return;
+      galaxiasExplodidas.delete(galaxiaAtualObj.id);
+      sortearEasterEggs();
+      redesenharUniversoInstantaneo();
+      abrirProjecao3D(galaxiaAtualObj);
+    });
+
+    btnRestaurarUniverso.addEventListener("click", (e) => {
+      e.stopPropagation();
+      galaxiasExplodidas.clear();
+      sortearEasterEggs();
+      redesenharUniversoInstantaneo();
+    });
+
+    btnPausar3D.addEventListener("click", () => {
+      pausado3D = !pausado3D;
+      btnPausar3D.textContent = pausado3D ? "Retomar Órbitas" : "Pausar Órbitas";
+    });
+
+    btnNomes3D.addEventListener("click", () => {
+      mostrarNomes3D = !mostrarNomes3D;
+      btnNomes3D.textContent = mostrarNomes3D ? "Ocultar Nomes" : "Mostrar Nomes";
+    });
+
+    btnReset3D.addEventListener("click", () => {
+      if (modoVisao3D === "closeup") {
+        rotY = 0.25;
+        rotX = 0.28;
+      } else {
+        rotY = 0.4;
+        rotX = 0.58;
+      }
+      zoom3D = 1.0;
+    });
+
+    // Inicialização dos elementos do universo
+    stars();
+    dust();
+    arms(900);
+    core();
+    sparkle();
+    dot(0, 0, 26, "#fff3c4", "via-lactea");
+    planets();
+    outrasGalaxias();
+
+    let indice = 0;
+    const pontosPorQuadro = 20;
+
+    function desenhar() {
+      for (let i = 0; i < pontosPorQuadro && indice < elementos.length; i++, indice++) {
+        const item = elementos[indice];
+
+        if (item.galaxiaId && galaxiasExplodidas.has(item.galaxiaId)) {
+          continue;
+        }
+
+        if (item.tipo === "planeta") {
+          desenharPlaneta(item);
+        } else {
+          ctx.beginPath();
+          ctx.arc(canvas.width / 2 + item.x, canvas.height / 2 - item.y, item.size / 2, 0, Math.PI * 2);
+          ctx.fillStyle = item.color;
+          ctx.fill();
+        }
+      }
+
+      if (indice < elementos.length) {
+        requestAnimationFrame(desenhar);
+      }
+    }
+
+    btnIniciar.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (criacaoIniciada) return;
+      criacaoIniciada = true;
+      btnIniciar.classList.add("oculto");
+      dicaUniverso.classList.add("visivel");
+      desenhar();
+      animarEfeitos();
+
+      setTimeout(criarEstrelaCadente, 900);
+      setTimeout(criarEstrelaCadente, 2400);
+      agendarProximaEstrelaCadente();
+    });
+  </script>
+</body>
+</html>
